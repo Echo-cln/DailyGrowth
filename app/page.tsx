@@ -2615,12 +2615,12 @@ function LoginScreen({
           <div className="absolute bottom-0 left-0 h-28 w-full bg-[radial-gradient(ellipse_at_bottom,#D7E7B0_0%,transparent_65%)] opacity-60" />
           <div className="relative flex h-full flex-col">
             <div className="flex items-center gap-3">
-              <span className="grid size-12 place-items-center rounded-2xl bg-[#F98C53] text-white shadow-lg shadow-[#F98C53]/20">
-                <BookOpen className="size-6" />
+              <span className="grid size-12 place-items-center rounded-2xl bg-[#243247] text-white shadow-lg shadow-[#243247]/20">
+                <Sparkles className="size-6" />
               </span>
               <div>
-                <h1 className="text-2xl font-semibold tracking-wide text-[#243247]">溯·辞</h1>
-                <p className="text-sm text-[#637489]">CET-6 Vocabulary Studio</p>
+                <h1 className="text-2xl font-semibold tracking-wide text-[#243247]">DailyGlow</h1>
+                <p className="text-sm text-[#637489]">学习 · 洞察 · 训练</p>
               </div>
             </div>
             <div className="my-10 max-w-sm sm:my-14">
@@ -2633,7 +2633,7 @@ function LoginScreen({
                 变成真正能用的表达。
               </h2>
               <p className="mt-5 text-sm leading-7 text-[#617286]">
-                从核心词义、必记搭配到写作金句，把六级词汇学得更深，也用得更自然。
+                从六级学习到每日简报、市场观察与运动计划，把每一天过成可持续的成长系统。
               </p>
             </div>
             <div className="mt-auto grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
@@ -2656,10 +2656,10 @@ function LoginScreen({
               {isRegister ? "创建账户" : isResetting ? "找回密码" : "欢迎回来"}
             </p>
             <h2 className="mt-2 text-3xl font-semibold tracking-tight">
-              {isRegister ? (registerSent ? "验证你的联系方式" : "开始你的学习计划") : isResetting ? (resetSent ? "设置新密码" : "重获访问权限") : "继续今天的学习"}
+              {isRegister ? (registerSent ? "验证你的联系方式" : "开始你的每日系统") : isResetting ? (resetSent ? "设置新密码" : "重获访问权限") : "继续今天的成长"}
             </h2>
             <p className="mt-2 text-sm leading-6 text-[#697386]">
-              {isRegister ? (registerSent ? "请输入发送至邮箱的 6 位验证码，完成注册。" : "使用邮箱注册，验证后即可保存独立的学习记录。") : isResetting ? (resetSent ? "请填写邮箱收到的 6 位验证码，并设置新密码。" : "输入账户邮箱，我们会发送一封验证码邮件。") : "登录后查看今日任务和上次的学习进度。"}
+              {isRegister ? (registerSent ? "请输入发送至邮箱的 6 位验证码，完成注册。" : "使用邮箱注册，验证后即可保存独立的每日记录。") : isResetting ? (resetSent ? "请填写邮箱收到的 6 位验证码，并设置新密码。" : "输入账户邮箱，我们会发送一封验证码邮件。") : "登录后查看学习、简报、市场与训练的今日进度。"}
             </p>
           </div>
           {!isResetting && (
