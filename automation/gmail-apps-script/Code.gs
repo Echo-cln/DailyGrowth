@@ -28,7 +28,7 @@ function importDailyGlowEmails() {
       if (!parsed) return;
       const body = message.getPlainBody().trim();
       if (!body) throw new Error('邮件正文为空：' + message.getSubject());
-      if (body.length > 90_000) throw new Error('邮件正文超过 90,000 字符，未导入：' + message.getSubject());
+      if (body.length > 90000) throw new Error('邮件正文超过 90,000 字符，未导入：' + message.getSubject());
       const payload = {
         contentType: parsed.contentType,
         contentDate: parsed.contentDate,
