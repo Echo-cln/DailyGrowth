@@ -53,10 +53,22 @@ DailyGlow 的首页有三条独立内容通道。它们按 **日期 + 内容类�
 
 ## 给定时任务的输出要求
 
-让两个定时任务分别只输出 JSON，不要混合 Markdown、寒暄或代码围栏：
+让三个定时任务分别只输出一份完整 JSON，不要混合 Markdown、寒暄或代码围栏。把下列提示分别放进「成长简报」「基金市场」「训练计划」任务中；网页的“一键粘贴任务 JSON”会自动拆出标题、摘要与行动项：
 
 ```text
-请仅输出符合 DailyGlow payload 协议的 JSON。生成 3–6 个 items；每项必须有稳定的 id、简洁的 title、可选 summary。内容类型：growth_brief。
+请仅输出一份符合 DailyGlow 导入协议的 JSON，不要使用 Markdown 代码围栏。
+内容类型：growth_brief。
+输出结构必须为：
+{
+  "title": "今日成长简报标题",
+  "summary": "一句总览",
+  "payload": {
+    "items": [
+      { "id": "稳定英文标识", "title": "可完成的行动", "summary": "简短说明", "url": "可选链接" }
+    ]
+  }
+}
+生成 3–6 个 items；每项 id 必须稳定、title 必须简洁可执行。
 ```
 
-基金任务仅将最后一项改为 `内容类型：market_brief`。ChatGPT 定时任务本身不会自动拥有你的 Supabase 写入权限；要自动写入，需要由可信云端工作流携带导入密钥调用上述接口。
+基金任务将内容类型改为 `market_brief`，训练任务改为 `workout_plan`。ChatGPT 定时任务本身不会自动拥有你的 Supabase 写入权限；要自动写入，需要由可信云端工作流携带导入密钥调用上述接口。
