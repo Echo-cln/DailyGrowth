@@ -1,4 +1,10 @@
-# DailyGlow Daily Hub：定时任务内容协议
+# DailyGlow Daily Hub：自动更新与备用导入
+
+DailyGlow 的生产模式不再依赖你每天粘贴内容。EdgeOne 会在北京时间每天 **08:05** 自动生成每日简报和训练计划，在 **14:05** 自动生成基金市场观察；生成结果直接写入 Supabase 私有云端。浏览器打开「每日中心」时只读取你的账户数据。
+
+自动生成使用部署环境中的 `OPENAI_API_KEY`，并可通过 `DAILYGLOW_OPENAI_MODEL` 指定模型（默认 `gpt-6-astra`）。它还需要 `DAILYGLOW_IMPORT_USER_ID` 指向你的 DailyGlow 账户。两者只应放在 EdgeOne 环境变量/Secret，绝不能提交到 GitHub。
+
+手动导入保留为自动任务失败时的备用方式。
 
 DailyGlow 的首页有三条独立内容通道。它们按 **日期 + 内容类型** 保存，因此导入「基金市场」不会覆盖「每日简报」或「今日训练」。
 
