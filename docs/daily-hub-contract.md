@@ -4,6 +4,25 @@ DailyGlow 不读取 ChatGPT 网页会话，也不保存 ChatGPT 登录凭证。�
 
 计划中的首选桥接是：ChatGPT 定时任务生成内容并保留历史 → 通知邮件携带结果 → 邮箱自动化提取 JSON → 调用本导入接口。是否能完全自动化取决于通知邮件是否包含完整任务结果，必须先做一次真实邮件验证。
 
+## Gmail 自动搬运（已适配三封完整邮件）
+
+当前任务邮件主题必须严格保持为：
+
+| 主题 | DailyGlow 记录 |
+| --- | --- |
+| `YYYY-MM-DD \| 08:00 每日成长简报` | `growth_brief` |
+| `YYYY-MM-DD \| 09:00 每日基金策略简报` | `fund_strategy` |
+| `YYYY-MM-DD \| 14:00 盘中风控复盘` | `market_intraday` |
+
+把 `automation/gmail-apps-script/Code.gs` 粘贴至该 Gmail 账户的新 Apps Script 项目；在 **Project Settings → Script properties** 新建：
+
+```text
+DAILYGLOW_IMPORT_URL=https://你的 DailyGlow 域名/api/daily-import
+DAILYGLOW_IMPORT_KEY=自行生成的长随机字符串
+```
+
+同一 `DAILYGLOW_IMPORT_KEY` 也必须作为 EdgeOne 的私密环境变量配置。运行一次 `setupDailyGlowBridge` 并授权 Gmail、外部请求与触发器权限后，脚本每 5 分钟扫描尚未搬运的三类邮件，完整保存原文，成功后标记 Gmail 标签 `DailyGlow/Imported`。它不会读取或保存 ChatGPT 的登录信息。
+
 DailyGlow 的首页有三条独立内容通道。它们按 **日期 + 内容类型** 保存，因此导入「基金市场」不会覆盖「每日简报」或「今日训练」。
 
 | 内容类型 | 用途 | 建议由哪条定时任务生成 |
