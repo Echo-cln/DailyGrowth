@@ -19,6 +19,7 @@ DailyGlow 不读取 ChatGPT 网页会话，也不保存 ChatGPT 登录凭证。�
 ```text
 DAILYGLOW_IMPORT_URL=https://你的 DailyGlow 域名/api/daily-import
 DAILYGLOW_IMPORT_KEY=自行生成的长随机字符串
+DAILYGLOW_SOURCE_EMAIL=发送这些任务邮件的 Gmail 地址（可选；不填则使用脚本当前账户）
 ```
 
 同一 `DAILYGLOW_IMPORT_KEY` 也必须作为 EdgeOne 的私密环境变量配置。运行一次 `setupDailyGlowBridge` 并授权 Gmail、外部请求与触发器权限后，脚本每 5 分钟扫描尚未搬运的三类邮件，完整保存原文，成功后标记 Gmail 标签 `DailyGlow/Imported`。它不会读取或保存 ChatGPT 的登录信息。
