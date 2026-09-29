@@ -1,7 +1,7 @@
 import { dbRequest, jsonDate } from "@/lib/supabase-rest";
 
-type HubType = "growth_brief" | "market_brief" | "workout_plan";
-const validTypes = new Set<HubType>(["growth_brief", "market_brief", "workout_plan"]);
+type HubType = "growth_brief" | "fund_strategy" | "market_intraday" | "workout_plan";
+const validTypes = new Set<HubType>(["growth_brief", "fund_strategy", "market_intraday", "workout_plan"]);
 const badRequest = (error: string) => Response.json({ error }, { status: 400 });
 
 function importConfig() {
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(contentDate)) return badRequest("日期格式应为 YYYY-MM-DD");
   if (!title || title.length > 120) return badRequest("标题不能为空，且最多 120 个字符");
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) return badRequest("payload 必须是 JSON 对象");
-  if (JSON.stringify(payload).length > 100_000) return badRequest("导入内容过大");
+  if (JSON.stringify(payload).length > 250_000) return badRequest("导入内容过大");
 
   const rows = await dbRequest<Record<string, unknown>[]>(
     "daily_hub_items?on_conflict=user_id,content_date,content_type",
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
         title,
         summary,
         payload,
-        import_source: "scheduled_cloud",
+        import_source: "gmail_bridge",
         updated_at: new Date().toISOString(),
       },
     },
