@@ -47,7 +47,7 @@ export default function DailyPage() {
   const token = useCallback(() => typeof window === "undefined" ? "" : localStorage.getItem("suci_access_token") || "", []);
   const request = useCallback(async (url: string, init?: RequestInit) => {
     const accessToken = token();
-    if (!accessToken) throw new Error("请先从「学习 · 溯辞」登录，再打开每日主页。");
+    if (!accessToken) throw new Error("请先从「溯 · 辞」登录，再打开每日主页。");
     const response = await fetch(url, { ...init, headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}`, ...(init?.headers || {}) } });
     const body = await response.json();
     if (!response.ok) throw new Error(body.error || "同步失败");
@@ -96,7 +96,7 @@ export default function DailyPage() {
     <header className="sticky top-0 z-20 border-b border-[#eadfd9] bg-[#fffdfb]/95 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
         <Link href="/daily" className="flex items-center gap-2 font-black tracking-tight"><span className="grid h-9 w-9 place-items-center rounded-2xl bg-[#f98c53] text-white">D</span><span>DailyGlow</span></Link>
-        <nav className="hidden items-center gap-5 text-sm font-semibold md:flex"><Link className="text-[#f98c53]" href="/daily">今日</Link><Link href="/">学习 · 溯辞</Link><span className="text-[#697386]">洞察</span><span className="text-[#697386]">训练</span></nav>
+        <nav className="hidden items-center gap-5 text-sm font-semibold md:flex"><Link className="text-[#f98c53]" href="/daily">每日中心</Link><Link href="/">溯 · 辞</Link><span className="text-[#697386]">洞察</span><span className="text-[#697386]">训练</span></nav>
         <Link href="/" className="rounded-full bg-[#243247] px-4 py-2 text-sm font-semibold text-white">学习中心</Link>
       </div>
     </header>
