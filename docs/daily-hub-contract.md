@@ -31,6 +31,26 @@ DailyGlow 的首页有三条独立内容通道。它们按 **日期 + 内容类�
 
 `id` 应在同一份内容中保持稳定；它用来保存每个事项的勾选状态。`title` 必填，`summary` 和 `url` 可选。以后若扩展阅读链接、评分、图表或 AI 来源，可以直接加在 `payload` 内，不会破坏旧内容。
 
+## 自动导入接口
+
+部署环境配置 `DAILYGLOW_IMPORT_KEY` 和 `DAILYGLOW_IMPORT_USER_ID` 后，可信云端工作流可向 `POST /api/daily-import` 发送下列 JSON。它只接受请求头 `x-dailyglow-import-key` 中的导入密钥，且写入的账户由服务器环境变量固定；浏览器、GitHub 和公开仓库都拿不到该密钥。
+
+```json
+{
+  "contentType": "growth_brief",
+  "contentDate": "2026-09-29",
+  "title": "早间成长简报",
+  "summary": "今日最值得关注的三件事。",
+  "payload": {
+    "items": [
+      { "id": "focus-1", "title": "完成一个行动", "summary": "简短、可执行。" }
+    ]
+  }
+}
+```
+
+同一用户、日期和内容类型会更新为最新版本；三种内容类型彼此独立。
+
 ## 给定时任务的输出要求
 
 让两个定时任务分别只输出 JSON，不要混合 Markdown、寒暄或代码围栏：
@@ -39,4 +59,4 @@ DailyGlow 的首页有三条独立内容通道。它们按 **日期 + 内容类�
 请仅输出符合 DailyGlow payload 协议的 JSON。生成 3–6 个 items；每项必须有稳定的 id、简洁的 title、可选 summary。内容类型：growth_brief。
 ```
 
-基金任务仅将最后一项改为 `内容类型：market_brief`。应用目前采用安全的“复制 JSON → 手动导入”链路；定时任务本身不会自动拥有你的 Supabase 写入权限。
+基金任务仅将最后一项改为 `内容类型：market_brief`。ChatGPT 定时任务本身不会自动拥有你的 Supabase 写入权限；要自动写入，需要由可信云端工作流携带导入密钥调用上述接口。
