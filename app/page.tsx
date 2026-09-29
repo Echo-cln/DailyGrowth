@@ -650,7 +650,7 @@ export default function Home() {
       <main className="grid min-h-screen place-items-center">
         <div className="flex items-center gap-3 text-base text-[#697386]">
           <Loader2 className="size-5 animate-spin" />
-          正在整理今日词汇…
+          正在打开你的 DailyGlow…
         </div>
       </main>
     );
@@ -2631,9 +2631,9 @@ function LoginScreen({
             </div>
             <div className="mt-auto grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
               {[
-                ["1800", "核心词库", "#28628F"],
-                ["20", "每日新词", "#A64B1C"],
-                ["3", "熟练度层级", "#556B2F"],
+                ["学习", "溯 · 辞", "#28628F"],
+                ["洞察", "简报与市场", "#A64B1C"],
+                ["训练", "每日计划", "#556B2F"],
               ].map(([value, label, color]) => (
                 <div key={label} className="rounded-2xl border border-white/75 bg-white/60 px-4 py-3 backdrop-blur-sm">
                   <strong className="block text-lg text-[#243247]" style={{ color }}>{value}</strong>
