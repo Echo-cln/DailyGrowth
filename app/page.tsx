@@ -52,7 +52,7 @@ import {
 } from "@/components/ui/table";
 
 type Proficiency = "unfamiliar" | "familiar" | "mastered";
-type View = "today" | "words" | "wordbook" | "drafts" | "review" | "writing" | "stats" | "settings";
+type View = "growth" | "today" | "words" | "wordbook" | "drafts" | "review" | "writing" | "stats" | "settings";
 type Word = {
   id: number;
   word: string;
@@ -270,7 +270,8 @@ function saveCachedState(token: string, date: string | null, value: State, full 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const nav: { id: View; label: string; icon: typeof BookOpen }[] = [
-  { id: "today", label: "今日任务", icon: BookOpen },
+  { id: "growth", label: "每日总览", icon: Sparkles },
+  { id: "today", label: "学习 · 溯辞", icon: BookOpen },
   { id: "words", label: "词汇总表", icon: LibraryBig },
   { id: "wordbook", label: "生词本", icon: Bookmark },
   { id: "review", label: "复习中心", icon: RotateCcw },
@@ -294,7 +295,7 @@ export default function Home() {
   const [data, setData] = useState<State | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [authReady, setAuthReady] = useState(false);
-  const [view, setView] = useState<View>("today");
+  const [view, setView] = useState<View>("growth");
   const [loading, setLoading] = useState(true);
   const [hiddenParts, setHiddenParts] = useState({ meaning: false, collocation: false, example: false });
   const [query, setQuery] = useState("");
@@ -680,6 +681,29 @@ export default function Home() {
 
   const appData = data;
   const activeDate = selectedDate || appData.date;
+
+  function GrowthView() {
+    const studyTotal = reviewItems.length + newItems.length;
+    const studyDone = reviewDone + newDone;
+    return (
+      <div className="space-y-7">
+        <section className="relative overflow-hidden rounded-[2rem] border border-[#D7E7F2] bg-[linear-gradient(120deg,#F6FBFF_0%,#FFF9F5_58%,#F3F8E9_100%)] p-6 shadow-[0_16px_45px_rgba(36,50,71,0.07)] sm:p-8">
+          <div className="pointer-events-none absolute -right-12 -top-16 size-64 rounded-full border-[20px] border-[#ABD7FB]/35" />
+          <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-2xl"><p className="flex items-center gap-2 text-sm font-bold text-[#28628F]"><Sparkles className="size-4" />DAILYGLOW · PERSONAL DAILY SYSTEM</p><h1 className="mt-3 text-3xl font-black tracking-tight sm:text-5xl">今天，向前一点就很好。</h1><p className="mt-4 max-w-xl text-sm leading-7 text-[#697386]">把六级学习、每日简报、市场观察与训练放进同一份节奏里；每个模块独立保存，但都属于你的今天。</p></div>
+            <div className="rounded-2xl border border-white/80 bg-white/70 px-5 py-4 backdrop-blur"><p className="text-xs font-bold text-[#697386]">今日日期</p><p className="mt-1 text-lg font-black">{activeDate}</p><p className="mt-1 text-sm text-[#28628F]">连续学习 {calculateStudyStreak(appData.history)} 天</p></div>
+          </div>
+        </section>
+
+        <section className="grid gap-4 xl:grid-cols-[1.22fr_.78fr]">
+          <article className="rounded-[1.75rem] border border-[#EADFD9] bg-[#FFFDFB] p-6 shadow-sm"><div className="flex items-start justify-between gap-4"><div><p className="text-sm font-bold text-[#A64B1C]">学习模块 · 溯辞</p><h2 className="mt-1 text-2xl font-black">今天的核心词汇</h2><p className="mt-2 text-sm leading-6 text-[#697386]">复习和新词仍使用你原来的完整六级系统，不会丢失任何学习记录。</p></div><span className="grid size-12 place-items-center rounded-2xl bg-[#FCCEB4]"><BookOpen className="size-5" /></span></div><div className="mt-6 rounded-2xl bg-[#FFF5EF] p-4"><div className="flex items-end justify-between"><span className="text-sm font-semibold text-[#697386]">今日完成</span><b className="text-3xl font-black">{studyDone}<small className="ml-1 text-base text-[#697386]">/ {studyTotal || appData.task.new_target}</small></b></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-[#F5DDD0]"><div className="h-full rounded-full bg-[#F98C53]" style={{ width: `${studyTotal ? Math.min(100, studyDone / studyTotal * 100) : 0}%` }} /></div></div><button onClick={() => setView("today")} className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#243247] px-5 py-3 text-sm font-bold text-white">进入溯辞学习 <ChevronRight className="size-4" /></button></article>
+          <article className="rounded-[1.75rem] border border-[#EADFD9] bg-[#FFFDFB] p-6 shadow-sm"><p className="text-sm font-bold text-[#556B2F]">今日身体状态</p><h2 className="mt-1 text-2xl font-black">训练不靠硬撑</h2><p className="mt-3 text-sm leading-6 text-[#697386]">把你的低冲击训练、动作清单和历史计划放在同一处查看。</p><div className="mt-6 flex items-center gap-3 rounded-2xl bg-[#F4F8E9] p-4"><span className="grid size-10 place-items-center rounded-xl bg-[#D2E0AA]"><Dumbbell className="size-5 text-[#556B2F]" /></span><span><b className="block text-sm">DailyGlow 训练计划</b><small className="text-[#697386]">可从历史方案导入今天</small></span></div><Link href="/daily" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#556B2F]">查看今日训练 <ChevronRight className="size-4" /></Link></article>
+        </section>
+
+        <section><div className="mb-4 flex items-end justify-between gap-4"><div><p className="text-sm font-bold text-[#28628F]">DAILY INPUTS</p><h2 className="mt-1 text-2xl font-black">今天还需要什么</h2></div><Link href="/daily" className="text-sm font-bold text-[#28628F]">打开完整每日中心</Link></div><div className="grid gap-4 md:grid-cols-3"><Link href="/daily" className="group rounded-[1.5rem] border border-[#D7E7F2] bg-[#F4FAFF] p-5 transition hover:-translate-y-1 hover:shadow-md"><span className="grid size-10 place-items-center rounded-2xl bg-[#ABD7FB]"><Newspaper className="size-5 text-[#1F4161]" /></span><h3 className="mt-5 font-black">每日成长简报</h3><p className="mt-2 text-sm leading-6 text-[#697386]">早间信息、科研机会与今日行动，独立导入、逐项完成。</p><span className="mt-4 inline-flex items-center text-sm font-bold text-[#28628F]">查看简报 <ChevronRight className="size-4" /></span></Link><Link href="/daily" className="group rounded-[1.5rem] border border-[#F1DDCF] bg-[#FFF8F3] p-5 transition hover:-translate-y-1 hover:shadow-md"><span className="grid size-10 place-items-center rounded-2xl bg-[#FCceb4]"><LineChart className="size-5 text-[#8A4826]" /></span><h3 className="mt-5 font-black">基金市场观察</h3><p className="mt-2 text-sm leading-6 text-[#697386]">市场复盘和操作逻辑与成长简报分开保存，不混成一条信息流。</p><span className="mt-4 inline-flex items-center text-sm font-bold text-[#8A4826]">查看市场 <ChevronRight className="size-4" /></span></Link><Link href="/daily" className="group rounded-[1.5rem] border border-[#DDE9C3] bg-[#F8FBEF] p-5 transition hover:-translate-y-1 hover:shadow-md"><span className="grid size-10 place-items-center rounded-2xl bg-[#D2E0AA]"><Dumbbell className="size-5 text-[#556B2F]" /></span><h3 className="mt-5 font-black">运动塑形</h3><p className="mt-2 text-sm leading-6 text-[#697386]">按当天计划完成动作；旧日期的可用方案可以复制到今天。</p><span className="mt-4 inline-flex items-center text-sm font-bold text-[#556B2F]">开始训练 <ChevronRight className="size-4" /></span></Link></div></section>
+      </div>
+    );
+  }
 
   function TodayView() {
     return (
@@ -2225,7 +2249,7 @@ export default function Home() {
         <div className="mx-auto flex max-w-[1500px] items-center gap-5 px-4 py-3 lg:px-8">
           <button
             className="flex shrink-0 items-center gap-3"
-            onClick={() => setView("today")}
+            onClick={() => setView("growth")}
           >
             <span className="grid size-10 place-items-center rounded-2xl bg-[#243247] text-white shadow-sm">
               <Sparkles className="size-5" />
@@ -2279,6 +2303,7 @@ export default function Home() {
         </div>
       </header>
       <div className="mx-auto max-w-[1500px] px-4 py-7 lg:px-8">
+        {view === "growth" && <GrowthView />}
         {view === "today" && <TodayView />}
         {view === "words" && WordsView()}
         {view === "wordbook" && <WordbookView />}
