@@ -18,8 +18,9 @@ function importDailyGlowEmails() {
   const props = PropertiesService.getScriptProperties();
   const endpoint = requiredProperty_(props, 'DAILYGLOW_IMPORT_URL');
   const key = requiredProperty_(props, 'DAILYGLOW_IMPORT_KEY');
+  const sender = props.getProperty('DAILYGLOW_SOURCE_EMAIL') || Session.getEffectiveUser().getEmail();
   const label = GmailApp.getUserLabelByName(IMPORTED_LABEL);
-  const query = 'newer_than:14d -label:"DailyGlow/Imported" {subject:"每日成长简报" subject:"每日基金策略简报" subject:"盘中风控复盘"}';
+  const query = 'newer_than:14d from:(' + sender + ') -label:"DailyGlow/Imported" {subject:"每日成长简报" subject:"每日基金策略简报" subject:"盘中风控复盘"}';
   GmailApp.search(query, 0, 100).forEach(thread => {
     thread.getMessages().forEach(message => {
       if (thread.getLabels().some(item => item.getName() === IMPORTED_LABEL)) return;
