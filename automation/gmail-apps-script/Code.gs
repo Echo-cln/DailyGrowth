@@ -23,16 +23,23 @@ function importDailyGlowEmails() {
   // That mailbox may automatically forward the messages to this Gmail account,
   // which can change the visible sender. Match only the three exact DailyGlow
   // subjects rather than relying on a sender address.
-  const query = 'newer_than:14d -label:"DailyGlow/Imported" {subject:"每日成长简报" subject:"每日基金策略简报" subject:"盘中风控复盘"}';
+  // Do not depend on Gmail's handling of a forwarded Chinese subject. Scan
+  // unimported recent threads and accept only messages with a valid body header.
+  const query = 'newer_than:14d -label:"DailyGlow/Imported"';
+  let scanned = 0;
+  let matched = 0;
+  let imported = 0;
   GmailApp.search(query, 0, 100).forEach(thread => {
     thread.getMessages().forEach(message => {
       if (thread.getLabels().some(item => item.getName() === IMPORTED_LABEL)) return;
+      scanned += 1;
       const body = message.getPlainBody().trim();
-      if (!body) throw new Error('邮件正文为空：' + message.getSubject());
+      if (!body) return;
       const parsed = parseDailyGlowMessage_(message.getSubject(), body);
       // ChatGPT owns the email subject and changes it to "[Task Update] ...".
       // The task output's first line is the stable DailyGlow identity instead.
       if (!parsed) return;
+      matched += 1;
       if (body.length > 90000) throw new Error('邮件正文超过 90,000 字符，未导入：' + message.getSubject());
       const payload = {
         contentType: parsed.contentType,
@@ -49,8 +56,10 @@ function importDailyGlowEmails() {
       if (response.getResponseCode() < 200 || response.getResponseCode() >= 300)
         throw new Error('DailyGlow 导入失败：' + response.getResponseCode() + ' ' + response.getContentText());
       thread.addLabel(label);
+      imported += 1;
     });
   });
+  Logger.log('DailyGlow：扫描 ' + scanned + ' 封，匹配 ' + matched + ' 封，导入 ' + imported + ' 封');
 }
 
 function parseDailyGlowMessage_(subject, body) {
