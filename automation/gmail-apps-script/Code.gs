@@ -27,10 +27,12 @@ function importDailyGlowEmails() {
   GmailApp.search(query, 0, 100).forEach(thread => {
     thread.getMessages().forEach(message => {
       if (thread.getLabels().some(item => item.getName() === IMPORTED_LABEL)) return;
-      const parsed = parseSubject_(message.getSubject());
-      if (!parsed) return;
       const body = message.getPlainBody().trim();
       if (!body) throw new Error('邮件正文为空：' + message.getSubject());
+      const parsed = parseDailyGlowMessage_(message.getSubject(), body);
+      // ChatGPT owns the email subject and changes it to "[Task Update] ...".
+      // The task output's first line is the stable DailyGlow identity instead.
+      if (!parsed) return;
       if (body.length > 90000) throw new Error('邮件正文超过 90,000 字符，未导入：' + message.getSubject());
       const payload = {
         contentType: parsed.contentType,
@@ -51,8 +53,10 @@ function importDailyGlowEmails() {
   });
 }
 
-function parseSubject_(subject) {
-  const match = subject.match(/^(\d{4}-\d{2}-\d{2})\s*\|\s*(08:00|09:00|14:00)\s*(每日成长简报|每日基金策略简报|盘中风控复盘)\s*$/);
+function parseDailyGlowMessage_(subject, body) {
+  const exactSubject = /^(\d{4}-\d{2}-\d{2})\s*\|\s*(08:00|09:00|14:00)\s*(每日成长简报|每日基金策略简报|盘中风控复盘)\s*$/;
+  const bodyHeader = /(\d{4}-\d{2}-\d{2})\s*\|\s*(08:00|09:00|14:00)\s*(每日成长简报|每日基金策略简报|盘中风控复盘)/;
+  const match = subject.match(exactSubject) || body.match(bodyHeader);
   if (!match) return null;
   const key = match[2] + match[3];
   const rules = {
