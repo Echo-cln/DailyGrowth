@@ -63,8 +63,11 @@ function importDailyGlowEmails() {
 }
 
 function parseDailyGlowMessage_(subject, body) {
-  const exactSubject = /^(\d{4}-\d{2}-\d{2})\s*\|\s*(08:00|09:00|14:00)\s*(每日成长简报|每日基金策略简报|盘中风控复盘)\s*$/;
-  const bodyHeader = /(\d{4}-\d{2}-\d{2})\s*\|\s*(08:00|09:00|14:00)\s*(每日成长简报|每日基金策略简报|盘中风控复盘)/;
+  // ChatGPT/Gmail may use either the ASCII pipe "|" or the full-width
+  // separator "｜" in a Chinese subject/body. Treat them as equivalent.
+  const separator = '[|｜]';
+  const exactSubject = new RegExp('^(\\d{4}-\\d{2}-\\d{2})\\s*' + separator + '\\s*(08:00|09:00|14:00)\\s*(每日成长简报|每日基金策略简报|盘中风控复盘)\\s*$');
+  const bodyHeader = new RegExp('(\\d{4}-\\d{2}-\\d{2})\\s*' + separator + '\\s*(08:00|09:00|14:00)\\s*(每日成长简报|每日基金策略简报|盘中风控复盘)');
   const match = subject.match(exactSubject) || body.match(bodyHeader);
   if (!match) return null;
   const key = match[2] + match[3];
