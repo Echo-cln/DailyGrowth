@@ -21,6 +21,19 @@ async function currentUser(request: Request) {
 export async function GET(request: Request) {
   const user = await currentUser(request);
   if (!user) return unauthorized();
+  const history = new URL(request.url).searchParams.get("history");
+  if (history === "workout") {
+    const items = await dbRequest<Record<string, unknown>[]>(
+      `daily_hub_items?select=*&user_id=eq.${user.id}&content_type=eq.workout_plan&order=content_date.desc&limit=42`,
+    );
+    const ids = items.map((item) => String(item.id)).filter(Boolean);
+    const actions = ids.length
+      ? await dbRequest<Record<string, unknown>[]>(
+          `daily_hub_action_states?select=*&user_id=eq.${user.id}&item_id=in.(${ids.join(",")})`,
+        )
+      : [];
+    return Response.json({ items, actions });
+  }
   const date = dateFor(request);
   if (!date) return badRequest("日期格式应为 YYYY-MM-DD");
   const items = await dbRequest<Record<string, unknown>[]>(
