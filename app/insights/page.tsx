@@ -7,7 +7,7 @@ import { ArrowLeft, ChevronRight, LineChart, Newspaper, ShieldAlert, Sparkles } 
 type InsightType = "growth_brief" | "fund_strategy" | "market_intraday";
 type HubItem = { id: string; content_type: InsightType | "workout_plan"; title: string; summary: string; payload: Record<string, unknown>; content_date: string };
 type ActionState = { item_id: string; action_key: string; completed: boolean };
-type Line = { key: string; title: string; detail: string };
+type DocumentBlock = { kind: "title" | "heading" | "label" | "paragraph" | "bullet" | "numbered" | "quote" | "table"; text?: string; rows?: string[][] };
 
 const TEXT = "#3f5e77";
 const SURFACE = "#cfe7f1";
@@ -24,23 +24,34 @@ const meta: Record<InsightType, { label: string; short: string; description: str
 };
 
 function today() { return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date()); }
-function clean(value: string) { return value.replace(/\r\n?/g, "\n").replace(/genui.*?/g, "").replace(/\*\*(.*?)\*\*/g, "$1").replace(/\*([^*\n]+)\*/g, "$1").replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, "$1").trim(); }
+function clean(value: string) { return value.replace(/\r\n?/g, "\n").replace(/genui.*?/g, "").replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, "$1").trim(); }
 function documentBody(item?: HubItem) { const raw = item?.payload.document; return raw && typeof raw === "object" && !Array.isArray(raw) ? String((raw as Record<string, unknown>).body || "") : ""; }
-function actionLines(item?: HubItem): Line[] {
-  if (!item) return [];
-  const raw = Array.isArray(item.payload.items) ? item.payload.items : Array.isArray(item.payload.highlights) ? item.payload.highlights : [];
-  const listed = raw.map((row, index) => typeof row === "string" ? { key: String(index), title: row, detail: "" } : { key: String((row as Record<string, unknown>).id ?? index), title: String((row as Record<string, unknown>).title ?? (row as Record<string, unknown>).text ?? "未命名事项"), detail: String((row as Record<string, unknown>).summary ?? (row as Record<string, unknown>).detail ?? "") });
-  if (listed.length) return listed;
-  return clean(documentBody(item)).split("\n").map((line) => line.trim()).filter((line) => /(?:继续持有|暂停加仓|减仓|不加仓|不新增|执行|分批|观察|保留)/.test(line)).slice(0, 8).map((title, index) => ({ key: `doc-${index}`, title: title.replace(/^(?:[-•●▪·]|\d+[.)、])\s*/, ""), detail: "" }));
+function splitTableRow(line: string) { return line.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((cell) => cell.trim()); }
+function parseDocument(body: string): DocumentBlock[] {
+  const lines = clean(body).split("\n"); const blocks: DocumentBlock[] = []; let sawTitle = false;
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index].trim(); if (!line) continue; const next = lines[index + 1]?.trim() || "";
+    if (line.includes("|") && /^\|?\s*:?-{2,}:?\s*(?:\|\s*:?-{2,}:?\s*)+\|?$/.test(next)) { const rows = [splitTableRow(line)]; index += 2; while (index < lines.length && lines[index].includes("|")) { rows.push(splitTableRow(lines[index])); index += 1; } blocks.push({ kind: "table", rows }); index -= 1; continue; }
+    if (!sawTitle && /^(?:#\s*)?\d{4}-\d{2}-\d{2}/.test(line)) { blocks.push({ kind: "title", text: line.replace(/^#\s*/, "") }); sawTitle = true; continue; }
+    if (/^(?:#{1,3}\s+|[一二三四五六七八九十]+[、.]\s*|\d+[、.]\s*)/.test(line)) { blocks.push({ kind: "heading", text: line.replace(/^#{1,3}\s*/, "") }); continue; }
+    if (/^(?:结论|最终结论|触发条件|执行动作|动作|原因|执行含义|事实|不确定性|结构结论|补充市场体检|今日最终执行表)\s*[：:]/.test(line)) { blocks.push({ kind: "label", text: line }); continue; }
+    const bullet = line.match(/^(?:[-•●▪·*])\s+(.+)$/); if (bullet) { blocks.push({ kind: "bullet", text: bullet[1] }); continue; }
+    const numbered = line.match(/^\d+[.)]\s+(.+)$/); if (numbered) { blocks.push({ kind: "numbered", text: numbered[1] }); continue; }
+    if (line.startsWith(">")) { blocks.push({ kind: "quote", text: line.replace(/^>\s*/, "") }); continue; }
+    blocks.push({ kind: "paragraph", text: line });
+  }
+  return blocks;
 }
-function renderDocument(body: string) {
-  const lines = clean(body).split("\n").map((line) => line.trim()).filter(Boolean);
-  return lines.map((line, index) => {
-    if (/^(?:#{1,3}\s+|[一二三四五六七八九十]+[、.]\s*|\d+[、.]\s*)/.test(line)) return <h3 key={index} className="pt-3 text-lg font-black" style={{ color: TEXT }}>{line.replace(/^#{1,3}\s*/, "")}</h3>;
-    if (/^(?:[-•●▪·*])\s+/.test(line)) return <div key={index} className="flex gap-2 text-sm leading-7 text-[#5e7180]"><span className="mt-3 h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: ACCENT }}/><p>{line.replace(/^(?:[-•●▪·*])\s+/, "")}</p></div>;
-    return <p key={index} className="text-sm leading-7 text-[#5e7180]">{line}</p>;
-  });
-}
+function inline(text: string) { const parts = text.split(/(\*\*[^*]+\*\*)/g); return parts.map((part, index) => part.startsWith("**") && part.endsWith("**") ? <strong key={index} className="font-extrabold" style={{ color: TEXT }}>{part.slice(2, -2)}</strong> : part); }
+function renderDocument(body: string) { return parseDocument(body).map((block, index) => {
+  if (block.kind === "table" && block.rows?.length) return <div key={index} className="my-6 overflow-x-auto rounded-2xl border border-[#dbe8ee] bg-white"><table className="w-full min-w-[34rem] text-left text-sm"><thead className="bg-[#eef8fc]"><tr>{block.rows[0].map((cell, cellIndex) => <th key={cellIndex} className="px-4 py-3 font-extrabold">{inline(cell)}</th>)}</tr></thead><tbody>{block.rows.slice(1).map((row, rowIndex) => <tr key={rowIndex} className="border-t border-[#e5eef2]">{row.map((cell, cellIndex) => <td key={cellIndex} className="px-4 py-3 align-top leading-6 text-[#526979]">{inline(cell)}</td>)}</tr>)}</tbody></table></div>;
+  if (block.kind === "title") return <p key={index} className="mb-6 rounded-xl bg-[#f4faff] px-4 py-3 text-sm font-bold text-[#526979]">{inline(block.text || "")}</p>;
+  if (block.kind === "heading") return <h3 key={index} className="mt-9 border-l-4 border-[#cfe7f1] pl-3 text-xl font-black tracking-tight" style={{ color: TEXT }}>{inline(block.text || "")}</h3>;
+  if (block.kind === "label") return <p key={index} className="rounded-xl border border-[#dcecf4] bg-[#f8fcfe] px-4 py-3 text-base leading-7 text-[#526979]">{inline(block.text || "")}</p>;
+  if (block.kind === "quote") return <blockquote key={index} className="border-l-4 border-[#ffd8b8] bg-[#fffaf6] px-5 py-4 text-base font-semibold leading-8 text-[#526979]">{inline(block.text || "")}</blockquote>;
+  if (block.kind === "bullet" || block.kind === "numbered") return <div key={index} className="flex gap-3 text-base leading-8 text-[#526979]"><span className="mt-3 h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: ACCENT }} /><p>{inline(block.text || "")}</p></div>;
+  return <p key={index} className="text-base leading-8 text-[#526979]">{inline(block.text || "")}</p>;
+}); }
 
 export default function InsightsPage() {
   const [date] = useState(today);
@@ -57,11 +68,12 @@ export default function InsightsPage() {
   const load = useCallback(async () => { try { const data = await request(`/api/daily-hub?date=${date}`); setItems(data.items || []); setActions(data.actions || []); } catch (cause) { setError(cause instanceof Error ? cause.message : "无法读取洞察内容"); } }, [date, request]);
   useEffect(() => { const timer = window.setTimeout(() => { const value = new URLSearchParams(window.location.search).get("focus"); if (value === "growth_brief" || value === "fund_strategy" || value === "market_intraday") setFocus(value); void load(); }, 0); return () => window.clearTimeout(timer); }, [load]);
   const item = useMemo(() => items.find((entry) => entry.content_type === focus), [focus, items]);
-  const rows = actionLines(item);
-  async function toggle(line: Line, checked: boolean) {
+  const moduleActionKey = "__module_complete__";
+  const moduleComplete = actions.some((state) => state.item_id === item?.id && state.action_key === moduleActionKey && state.completed);
+  async function toggle(checked: boolean) {
     if (!item) return;
-    setActions((old) => [...old.filter((state) => !(state.item_id === item.id && state.action_key === line.key)), { item_id: item.id, action_key: line.key, completed: checked }]);
-    try { await request("/api/daily-hub", { method: "POST", body: JSON.stringify({ action: "set-action-state", itemId: item.id, actionKey: line.key, completed: checked }) }); } catch (cause) { setError(cause instanceof Error ? cause.message : "保存失败"); void load(); }
+    setActions((old) => [...old.filter((state) => !(state.item_id === item.id && state.action_key === moduleActionKey)), { item_id: item.id, action_key: moduleActionKey, completed: checked }]);
+    try { await request("/api/daily-hub", { method: "POST", body: JSON.stringify({ action: "set-action-state", itemId: item.id, actionKey: moduleActionKey, completed: checked }) }); } catch (cause) { setError(cause instanceof Error ? cause.message : "保存失败"); void load(); }
   }
   const selectedMeta = meta[focus]; const Icon = selectedMeta.icon;
   return <main className="min-h-screen bg-[#f9f2ef]" style={{ color: TEXT }}>
@@ -69,6 +81,6 @@ export default function InsightsPage() {
     <section className="mx-auto max-w-6xl px-5 py-9"><div className="relative overflow-hidden rounded-[2rem] border border-[#d6e7f0] bg-[linear-gradient(115deg,#ffffff_0%,#f6fbff_60%,#f9fbed_100%)] p-6 shadow-[0_16px_45px_rgba(63,94,119,0.07)] md:p-9"><div className="pointer-events-none absolute -right-16 -top-24 h-72 w-72 rounded-full border-[18px] border-[#dbeff8]/80"/><Link href="/daily" className="relative inline-flex items-center gap-1 text-sm font-bold text-[#5e7180]"><ArrowLeft size={16}/>每日中心</Link><div className="relative mt-5"><p className="flex items-center gap-2 text-sm font-bold"><Sparkles size={16} style={{ color: TEXT }}/>今日洞察</p><h1 className="mt-2 text-3xl font-black tracking-tight md:text-5xl">把信息变成判断。</h1><p className="mt-3 max-w-2xl leading-7 text-[#5e7180]">三份定时内容在这里分开阅读、完成行动，并在对应的 ChatGPT 任务中继续追问。</p></div></div>
       <div className="mt-8 grid gap-4 md:grid-cols-3">{(Object.keys(meta) as InsightType[]).map((type) => { const card = meta[type]; const CardIcon = card.icon; const active = focus === type; return <button key={type} onClick={() => { setFocus(type); window.history.replaceState(null, "", `/insights?focus=${type}`); }} className={`rounded-[1.7rem] border p-5 text-left shadow-[0_10px_26px_rgba(63,94,119,0.035)] transition ${active ? "ring-2 ring-[#cfe7f1]" : "hover:-translate-y-0.5 hover:shadow-[0_15px_30px_rgba(63,94,119,0.08)]"} ${card.surface} ${card.border}`}><span className={`grid h-11 w-11 place-items-center rounded-2xl ${card.iconSurface}`}><CardIcon size={21}/></span><p className="mt-6 text-xl font-black">{card.label}</p><p className="mt-2 text-sm leading-6 text-[#5e7180]">{card.description}</p><span className="mt-5 inline-flex items-center gap-1 text-sm font-bold">查看内容 <ChevronRight size={16}/></span></button>; })}</div>
       {error && <p className="mt-6 rounded-2xl border border-[#fcceb4] bg-[#fffaf7] px-4 py-3 text-sm">{error}</p>}
-      <article className="mt-8 overflow-hidden rounded-[2rem] border border-[#d6e7f0] bg-[#fffdfb] shadow-[0_14px_36px_rgba(63,94,119,0.045)]"><div className={`border-b p-6 md:p-8 ${selectedMeta.surface} ${selectedMeta.border}`}><span className={`grid h-12 w-12 place-items-center rounded-2xl ${selectedMeta.iconSurface}`}><Icon size={24}/></span><p className="mt-5 text-sm font-bold">{selectedMeta.short} · {date}</p><h2 className="mt-1 text-2xl font-black md:text-3xl">{item?.title || `等待今日${selectedMeta.short}`}</h2><p className="mt-3 max-w-3xl leading-7 text-[#5e7180]">{item?.summary || "定时任务的内容抵达后，会在这里自动整理为正文与可执行行动。"}</p></div><div className="grid gap-8 p-6 md:grid-cols-[minmax(0,1.5fr)_minmax(18rem,.8fr)] md:p-8"><section><p className="mb-4 inline-flex rounded-full px-3 py-1 text-xs font-bold" style={{ backgroundColor: ACCENT }}>完整洞察</p>{item ? <div className="space-y-3">{renderDocument(documentBody(item))}</div> : <div className="rounded-2xl bg-[#fffaf7] p-5 text-sm leading-7 text-[#5e7180]">内容尚未同步。你可以稍后返回刷新，或在每日中心使用备用导入。</div>}</section><aside className="rounded-[1.5rem] border border-[#d6e7f0] bg-[#f7fbfd] p-5"><p className="text-sm font-bold">行动卡</p><p className="mt-1 text-sm leading-6 text-[#5e7180]">完成状态会同步回每日中心。</p><div className="mt-4 space-y-3">{rows.length ? rows.map((line) => { const checked = actions.some((state) => state.item_id === item?.id && state.action_key === line.key && state.completed); return <label key={line.key} className="flex cursor-pointer gap-3 rounded-2xl border border-[#e3edf3] bg-white p-3 text-sm"><input checked={checked} disabled={!item} onChange={(event) => void toggle(line, event.target.checked)} type="checkbox" className="mt-1 h-4 w-4" style={{ accentColor: ACCENT }}/><span className={checked ? "line-through opacity-55" : ""}>{line.title}{line.detail && <small className="mt-1 block leading-5 text-[#697386]">{line.detail}</small>}</span></label>; }) : <p className="rounded-2xl bg-white p-4 text-sm leading-6 text-[#697386]">这份内容暂未识别出行动项。</p>}</div><a href={taskLinks[focus]} target="_blank" rel="noreferrer" onClick={() => { if (item) void navigator.clipboard?.writeText(`请继续问答《${item.title}》，结合今天的内容给出下一步建议。`); }} className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-bold" style={{ backgroundColor: SURFACE }}>继续问 GPT <ChevronRight size={16}/></a><p className="mt-2 text-center text-xs text-[#697386]">打开对应任务，同时复制追问内容。</p></aside></div></article>
+      <article className="mt-8 overflow-hidden rounded-[2rem] border border-[#d6e7f0] bg-[#fffdfb] shadow-[0_14px_36px_rgba(63,94,119,0.045)]"><div className={`border-b p-6 md:p-8 ${selectedMeta.surface} ${selectedMeta.border}`}><span className={`grid h-12 w-12 place-items-center rounded-2xl ${selectedMeta.iconSurface}`}><Icon size={24}/></span><p className="mt-5 text-sm font-bold">{selectedMeta.short} · {date}</p><h2 className="mt-1 text-2xl font-black md:text-3xl">{item?.title || `等待今日${selectedMeta.short}`}</h2><p className="mt-3 max-w-3xl leading-7 text-[#5e7180]">{item?.summary || "定时任务的内容抵达后，会在这里自动整理为适合网页阅读的报告。"}</p></div><div className="grid gap-8 p-6 md:grid-cols-[minmax(0,1.5fr)_minmax(18rem,.8fr)] md:p-8"><section><p className="mb-5 inline-flex rounded-full px-3 py-1 text-xs font-bold" style={{ backgroundColor: ACCENT }}>完整洞察</p>{item ? <div className="space-y-4">{renderDocument(documentBody(item))}</div> : <div className="rounded-2xl bg-[#fffaf7] p-5 text-sm leading-7 text-[#5e7180]">内容尚未同步。你可以稍后返回刷新，或在每日中心使用备用导入。</div>}</section><aside className="h-fit rounded-[1.5rem] border border-[#d6e7f0] bg-[#f7fbfd] p-5"><p className="text-sm font-bold">本篇完成</p><p className="mt-1 text-sm leading-6 text-[#5e7180]">读完并完成今天的判断后，再打一个总勾即可。</p><label className={`mt-5 flex cursor-pointer items-start gap-3 rounded-2xl border p-4 transition ${moduleComplete ? "border-[#cfe7f1] bg-[#eef8fc]" : "border-[#e3edf3] bg-white"}`}><input checked={moduleComplete} disabled={!item} onChange={(event) => void toggle(event.target.checked)} type="checkbox" className="mt-1 h-5 w-5" style={{ accentColor: ACCENT }}/><span><b className={moduleComplete ? "line-through opacity-55" : ""}>完成《{selectedMeta.short}》</b><small className="mt-1 block leading-5 text-[#697386]">完成状态会同步回每日中心。</small></span></label><a href={taskLinks[focus]} target="_blank" rel="noreferrer" onClick={() => { if (item) void navigator.clipboard?.writeText(`请继续问答《${item.title}》，结合今天的内容给出下一步建议。`); }} className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-bold" style={{ backgroundColor: SURFACE }}>继续问 GPT <ChevronRight size={16}/></a><p className="mt-2 text-center text-xs text-[#697386]">打开对应的每日任务，并复制追问内容。</p></aside></div></article>
   </section></main>;
 }
