@@ -29,7 +29,6 @@ const GPT_TASK_URLS: Record<HubType, string> = {
   market_intraday: "https://chatgpt.com/c/6aba02e7-79c4-83e9-8935-8b09e57f8a38?automationId=6ab3894d946081918d9d383e8fee9ffd&messageId=finalAgentTurnStart",
   workout_plan: "https://chatgpt.com/c/6ab3cca9-0b58-83e9-823e-2bf1aa4b4b09?automationId=6ab3d0b894508191aaa80aa90c093a60&messageId=finalAgentTurnStart",
 };
-const hubAnchors: Record<HubType, string> = { growth_brief: "briefs", fund_strategy: "insights", market_intraday: "intraday", workout_plan: "training" };
 
 const modules: Record<HubType, { label: string; hint: string; color: string; icon: typeof Newspaper }> = {
   growth_brief: { label: "每日简报", hint: "信息、机会与值得留意的事", color: "bg-[#abd7fb]", icon: Newspaper },
