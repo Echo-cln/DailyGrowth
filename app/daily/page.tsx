@@ -21,9 +21,15 @@ type DocumentBlock = { kind: "title" | "heading" | "label" | "paragraph" | "bull
 // 两个替代色严格取自用户的参考图：蜜桃 #FFD8B8、雾蓝 #CFE7F1。
 const DAILY_ACCENT = "#ffd8b8";
 const DAILY_SURFACE = "#cfe7f1";
-const DAILY_TEXT = "#697386";
+const DAILY_TEXT = "#465a6b";
 const DAILY_ACCENT_PALE = "#fff1e4";
-const GPT_HOME = "https://chatgpt.com/";
+const GPT_TASK_URLS: Record<HubType, string> = {
+  growth_brief: "https://chatgpt.com/c/6abb0103-00dc-83ea-afbc-60a987f3eadf?automationId=6ab0f201e5a08191b50d6b5f25de2f5e&messageId=finalAgentTurnStart",
+  fund_strategy: "https://chatgpt.com/c/6abc6367-7574-83ea-993d-fae69ade85b8?automationId=6abb36c335c88191b6b00164be58a233&messageId=finalAgentTurnStart",
+  market_intraday: "https://chatgpt.com/c/6aba02e7-79c4-83e9-8935-8b09e57f8a38?automationId=6ab3894d946081918d9d383e8fee9ffd&messageId=finalAgentTurnStart",
+  workout_plan: "https://chatgpt.com/c/6ab3cca9-0b58-83e9-823e-2bf1aa4b4b09?automationId=6ab3d0b894508191aaa80aa90c093a60&messageId=finalAgentTurnStart",
+};
+const hubAnchors: Record<HubType, string> = { growth_brief: "briefs", fund_strategy: "insights", market_intraday: "intraday", workout_plan: "training" };
 
 const modules: Record<HubType, { label: string; hint: string; color: string; icon: typeof Newspaper }> = {
   growth_brief: { label: "每日简报", hint: "信息、机会与值得留意的事", color: "bg-[#abd7fb]", icon: Newspaper },
@@ -117,12 +123,12 @@ function actionLinesFrom(item: HubItem): HubLine[] {
   return unique.map((line, index) => ({ key: `document-${index}`, title: line.replace(/^(?:[-•●▪·]|\d+[.)、])\s*/, ""), detail: "" }));
 }
 
-function AskGPTButton({ prompt }: { prompt: string }) {
+function AskGPTButton({ prompt, href }: { prompt: string; href: string }) {
   const [copied, setCopied] = useState(false);
   async function ask() {
     try { await navigator.clipboard.writeText(prompt); setCopied(true); window.setTimeout(() => setCopied(false), 2200); } catch { /* clipboard permission is optional */ }
   }
-  return <a href={GPT_HOME} target="_blank" rel="noreferrer" onClick={() => { void ask(); }} className="inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-bold transition hover:opacity-80" style={{ borderColor: DAILY_SURFACE, backgroundColor: "#cfe7f1aa", color: DAILY_TEXT }}>{copied ? "已复制问题" : "继续问 GPT"}</a>;
+  return <a href={href} target="_blank" rel="noreferrer" onClick={() => { void ask(); }} className="inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-bold transition hover:opacity-80" style={{ borderColor: DAILY_SURFACE, backgroundColor: "#cfe7f1aa", color: DAILY_TEXT }}>{copied ? "已复制问题" : "继续问 GPT"}</a>;
 }
 
 export default function DailyPage() {
@@ -185,10 +191,10 @@ export default function DailyPage() {
   }
 
   return <main className="min-h-screen bg-[#f9f2ef]" style={{ color: DAILY_TEXT }}>
-    <header className="sticky top-0 z-20 border-b border-[#eadfd9] bg-[#fffdfb]/95 backdrop-blur">
+    <header className="sticky top-0 z-20 border-b border-[#eadfd9] bg-[#fffdfb]">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
         <Link href="/daily" className="flex items-center gap-2 font-black tracking-tight"><span className="grid h-9 w-9 place-items-center rounded-2xl" style={{ backgroundColor: DAILY_SURFACE, color: DAILY_TEXT }}>D</span><span>DailyGlow</span></Link>
-        <nav className="hidden items-center gap-5 text-sm font-semibold md:flex"><Link className="rounded-full px-2 py-1" style={{ backgroundColor: DAILY_ACCENT, color: DAILY_TEXT }} href="/daily">每日中心</Link><Link href="/">溯 · 辞</Link><span className="text-[#697386]">洞察</span><span className="text-[#697386]">训练</span></nav>
+        <nav className="hidden items-center gap-5 text-sm font-semibold md:flex"><Link className="rounded-full px-2 py-1" style={{ backgroundColor: DAILY_ACCENT, color: DAILY_TEXT }} href="/daily">每日中心</Link><Link href="/">溯 · 辞</Link><Link className="text-[#697386] hover:text-[#465a6b]" href="/daily#insights">洞察</Link><Link className="text-[#697386] hover:text-[#465a6b]" href="/daily#training">训练</Link></nav>
         <Link href="/" className="rounded-full px-4 py-2 text-sm font-semibold" style={{ backgroundColor: DAILY_SURFACE, color: DAILY_TEXT }}>学习中心</Link>
       </div>
     </header>
@@ -200,8 +206,8 @@ export default function DailyPage() {
         </div>
       </div>
       {error && <div className="mt-5 flex items-center justify-between gap-4 rounded-2xl border bg-[#fff7f2] px-5 py-4 text-sm" style={{ borderColor: `${DAILY_ACCENT}cc` }}><span>{error}</span><Link className="shrink-0 font-bold" style={{ color: DAILY_TEXT }} href="/">去登录</Link></div>}
-      <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-        {(Object.keys(modules) as HubType[]).map((type) => <HubCard key={type} type={type} item={items.find((item) => item.content_type === type)} actions={actions} loading={loading} onImport={() => setImporting(type)} onToggle={toggle} onOpen={setOpened}/>) }
+      <div id="insights" className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+        {(Object.keys(modules) as HubType[]).map((type) => <div key={type} id={type === "workout_plan" ? "training" : undefined} className="scroll-mt-24"><HubCard type={type} item={items.find((item) => item.content_type === type)} actions={actions} loading={loading} onImport={() => setImporting(type)} onToggle={toggle} onOpen={setOpened}/></div>) }
       </div>
       <section className="mt-8 rounded-[2rem] border border-[#eadfd9] bg-[#fffdfb] p-6 md:p-8"><div className="flex items-center justify-between gap-4"><div><p className="inline-flex rounded-full px-3 py-1 text-sm font-bold" style={{ backgroundColor: DAILY_ACCENT, color: DAILY_TEXT }}>云端每日更新</p><h2 className="mt-2 text-xl font-black">三条内容，自动分开抵达</h2></div><RefreshCw size={20} className="text-[#697386]"/></div><p className="mt-3 max-w-3xl leading-7 text-[#697386]">早上自动生成每日简报与训练计划，下午自动补充基金市场观察；它们会直接保存到你的私有云端账户，换设备登录也能看到。下方的手动导入只在自动任务临时不可用时作为备用。</p><button onClick={() => setImporting("growth_brief")} className="mt-5 inline-flex items-center gap-2 rounded-full border border-[#eadfd9] px-4 py-2 text-sm font-bold hover:border-[#ffd8b8]"><Plus size={16}/>备用：手动导入</button></section>
     </section>
@@ -213,7 +219,7 @@ export default function DailyPage() {
 function ActionCard({ item, row, actions, onToggle, index, compact = false }: { item: HubItem; row: HubLine; actions: ActionState[]; onToggle: (itemId: string, actionKey: string, checked: boolean) => void; index?: number; compact?: boolean }) {
   const checked = actions.some((state) => state.item_id === item.id && state.action_key === row.key && state.completed);
   const prompt = `请继续问答《${item.title}》中的行动：${row.title}。结合今天的数据，给出下一步建议。`;
-  return <div className={`rounded-2xl border border-[#eadfd9] ${compact ? "bg-[#f9f2ef] p-3" : "bg-white p-4"}`}><div className="flex items-start gap-3"><input aria-label={`完成：${row.title}`} checked={checked} onChange={(event) => onToggle(item.id, row.key, event.target.checked)} type="checkbox" className="mt-1 h-4 w-4" style={{ accentColor: DAILY_ACCENT }}/><div className="min-w-0 flex-1"><div className="flex flex-wrap items-start justify-between gap-2"><div>{index !== undefined && <small className="font-bold" style={{ color: DAILY_ACCENT }}>{String(index + 1).padStart(2, "0")}</small>}<b className={`block ${index !== undefined ? "ml-2" : ""} ${checked ? "line-through opacity-50" : ""}`}>{row.title}</b>{row.detail && <p className="mt-1 text-sm leading-6 text-[#697386]">{row.detail}</p>}</div><AskGPTButton prompt={prompt}/></div>{row.url && <a href={row.url} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1 text-sm font-bold text-[#28628F]">打开相关内容 <ChevronRight size={15}/></a>}</div></div></div>;
+  return <div className={`rounded-2xl border border-[#eadfd9] ${compact ? "bg-[#f9f2ef] p-3" : "bg-white p-4"}`}><div className="flex items-start gap-3"><input aria-label={`完成：${row.title}`} checked={checked} onChange={(event) => onToggle(item.id, row.key, event.target.checked)} type="checkbox" className="mt-1 h-4 w-4" style={{ accentColor: DAILY_ACCENT }}/><div className="min-w-0 flex-1"><div className="flex flex-wrap items-start justify-between gap-2"><div>{index !== undefined && <small className="font-bold" style={{ color: DAILY_TEXT }}>{String(index + 1).padStart(2, "0")}</small>}<b className={`block ${index !== undefined ? "ml-2" : ""} ${checked ? "line-through opacity-50" : ""}`}>{row.title}</b>{row.detail && <p className="mt-1 text-sm leading-6 text-[#697386]">{row.detail}</p>}</div><AskGPTButton prompt={prompt} href={GPT_TASK_URLS[item.content_type]}/></div>{row.url && <a href={row.url} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1 text-sm font-bold text-[#28628F]">打开相关内容 <ChevronRight size={15}/></a>}</div></div></div>;
 }
 
 function HubCard({ type, item, actions, loading, onImport, onToggle, onOpen }: { type: HubType; item?: HubItem; actions: ActionState[]; loading: boolean; onImport: () => void; onToggle: (itemId: string, actionKey: string, checked: boolean) => void; onOpen: (item: HubItem) => void }) {
