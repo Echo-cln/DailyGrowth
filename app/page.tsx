@@ -1,3 +1,6 @@
+Warning: truncated output (original token count: 32352)
+Total output lines: 2883
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
@@ -693,7 +696,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section><div className="mb-4 flex items-end justify-between gap-4"><div><p className="text-sm font-bold text-[#28628F]">DAILY INPUTS</p><h2 className="mt-1 text-2xl font-black">今天还需要什么</h2></div><Link href="/daily" className="text-sm font-bold text-[#28628F]">打开完整每日中心</Link></div><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><button onClick={() => setView("words")} className="group rounded-[1.5rem] border border-[#F1DDCF] bg-[#FFF8F3] p-5 text-left transition hover:-translate-y-1 hover:shadow-md"><span className="grid size-10 place-items-center rounded-2xl bg-[#FCCEB4]"><BookOpen className="size-5 text-[#8A4826]" /></span><h3 className="mt-5 font-black">溯 · 辞</h3><p className="mt-2 text-sm leading-6 text-[#697386]">今日词汇 {reviewDone + newDone}/{reviewItems.length + newItems.length}，先完成一轮复习或新词。</p><span className="mt-4 inline-flex items-center text-sm font-bold text-[#8A4826]">开始学习 <ChevronRight className="size-4" /></span></button><Link href="/insights?focus=growth_brief" className="group rounded-[1.5rem] border border-[#D7E7F2] bg-[#F4FAFF] p-5 transition hover:-translate-y-1 hover:shadow-md"><span className="grid size-10 place-items-center rounded-2xl bg-[#ABD7FB]"><Newspaper className="size-5 text-[#1F4161]" /></span><h3 className="mt-5 font-black">每日成长简报</h3><p className="mt-2 text-sm leading-6 text-[#697386]">早间信息、科研机会与今日行动，独立阅读与完成。</p><span className="mt-4 inline-flex items-center text-sm font-bold text-[#28628F]">查看简报 <ChevronRight className="size-4" /></span></Link><Link href="/insights?focus=fund_strategy" className="group rounded-[1.5rem] border border-[#F1DDCF] bg-[#FFF8F3] p-5 transition hover:-translate-y-1 hover:shadow-md"><span className="grid size-10 place-items-center rounded-2xl bg-[#FCceb4]"><LineChart className="size-5 text-[#8A4826]" /></span><h3 className="mt-5 font-black">基金市场观察</h3><p className="mt-2 text-sm leading-6 text-[#697386]">基金策略与盘中风险，分开阅读和继续追问。</p><span className="mt-4 inline-flex items-center text-sm font-bold text-[#8A4826]">查看市场 <ChevronRight className="size-4" /></span></Link><Link href="/training" className="group rounded-[1.5rem] border border-[#DDE9C3] bg-[#F8FBEF] p-5 transition hover:-translate-y-1 hover:shadow-md"><span className="grid size-10 place-items-center rounded-2xl bg-[#D2E0AA]"><Dumbbell className="size-5 text-[#556B2F]" /></span><h3 className="mt-5 font-black">运动塑形</h3><p className="mt-2 text-sm leading-6 text-[#697386]">按当天计划完成动作；也可先查看历史训练的完整内容。</p><span className="mt-4 inline-flex items-center text-sm font-bold text-[#556B2F]">开始训练 <ChevronRight className="size-4" /></span></Link></div></section>
+        <section><div className="mb-4 flex items-end justify-between gap-4"><div><p className="text-sm font-bold text-[#28628F]">DAILY INPUTS</p><h2 className="mt-1 text-2xl font-black">今天还需要什么</h2></div><Link href="/daily" className="text-sm font-bold text-[#28628F]">打开完整每日中心</Link></div><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><button onClick={() => setView("words")} className="group rounded-[1.5rem] border border-[#F1DDCF] bg-[#FFF8F3] p-5 text-left transition hover:-translate-y-1 hover:shadow-md"><span className="grid size-10 place-items-center rounded-2xl bg-[#FCCEB4]"><BookOpen className="size-5 text-[#8A4826]" /></span><h3 className="mt-5 font-black">溯 · 辞</h3><p className="mt-2 text-sm leading-6 text-[#697386]">今日词汇 {reviewDone + newDone}/{reviewItems.length + newItems.length}，先完成一轮复习或新词。</p><span className="mt-4 inline-flex items-center text-sm font-bold text-[#8A4826]">开始学习 <ChevronRight className="size-4" /></span></button><Link href="/insights?focus=growth_brief" className="group rounded-[1.5rem] border border-[#D7E7F2] bg-[#F4FAFF] p-5 transition hover:-translate-y-1 hover:shadow-md"><span className="grid size-10 place-items-center rounded-2xl bg-[#ABD7FB]"><Newspaper className="size-5 text-[#1F4161]" /></span><h3 className="mt-5 font-black">每日成长简报</h3><p className="mt-2 text-sm leading-6 text-[#697386]">早间信息、科研机会与今日行动，独立阅读与完成。</p><span className="mt-4 inline-flex items-center text-sm font-bold text-[#28628F]">查看简报 <ChevronRight className="size-4" /></span></Link><Link href="/insights?focus=fund_strategy" className="group rounded-[1.5rem] border border-[#F1D9DC] bg-[#FFF7F8] p-5 transition hover:-translate-y-1 hover:shadow-md"><span className="grid size-10 place-items-center rounded-2xl bg-[#EFA5AD]"><LineChart className="size-5 text-[#83444D]" /></span><h3 className="mt-5 font-black">基金市场观察</h3><p className="mt-2 text-sm leading-6 text-[#697386]">基金策略与盘中风险，分开阅读和继续追问。</p><span className="mt-4 inline-flex items-center text-sm font-bold text-[#83444D]">查看市场 <ChevronRight className="size-4" /></span></Link><Link href="/training" className="group rounded-[1.5rem] border border-[#DDE9C3] bg-[#F8FBEF] p-5 transition hover:-translate-y-1 hover:shadow-md"><span className="grid size-10 place-items-center rounded-2xl bg-[#D2E0AA]"><Dumbbell className="size-5 text-[#556B2F]" /></span><h3 className="mt-5 font-black">运动塑形</h3><p className="mt-2 text-sm leading-6 text-[#697386]">按当天计划完成动作；也可先查看历史训练的完整内容。</p><span className="mt-4 inline-flex items-center text-sm font-bold text-[#556B2F]">开始训练 <ChevronRight className="size-4" /></span></Link></div></section>
       </div>
     );
   }
@@ -718,7 +721,6 @@ export default function Home() {
             <Link href="/insights?focus=fund_strategy" className="flex items-center gap-3 border-b border-[#D7E7F2] px-5 py-4 transition hover:bg-white/50 sm:border-b-0 sm:border-r"><span className="grid size-9 place-items-center rounded-xl bg-[#D2E0AA]"><LineChart className="size-4 text-[#556B2F]" /></span><span><b className="block text-sm">基金市场</b><small className="text-[#697386]">策略与风控分开记录</small></span></Link>
             <Link href="/training" className="flex items-center gap-3 px-5 py-4 transition hover:bg-white/50"><span className="grid size-9 place-items-center rounded-xl bg-[#FCE0D7]"><Dumbbell className="size-4 text-[#8B4B42]" /></span><span><b className="block text-sm">今日训练</b><small className="text-[#697386]">DailyGlow 运动计划</small></span></Link>
           </div>
-
         </section>
         <section className="grid gap-4 md:grid-cols-4">
           <Metric
@@ -1348,185 +1350,7 @@ export default function Home() {
       const canvas = canvasRef.current;
       if (!canvas) return;
       const context = canvas.getContext("2d");
-      if (!context) return;
-      context.clearRect(0, 0, canvas.width, canvas.height);
-      context.fillStyle = "#FFFDFB";
-      context.fillRect(0, 0, canvas.width, canvas.height);
-      if (!data) return;
-      const image = new Image();
-      image.onload = () => context.drawImage(image, 0, 0, canvas.width, canvas.height);
-      image.src = data;
-    }, []);
-
-    useEffect(() => { restoreCanvas(drawing); }, [drawing, restoreCanvas]);
-
-    const point = (event: React.PointerEvent<HTMLCanvasElement>) => {
-      const canvas = canvasRef.current!;
-      const rect = canvas.getBoundingClientRect();
-      return { x: (event.clientX - rect.left) * (canvas.width / rect.width), y: (event.clientY - rect.top) * (canvas.height / rect.height) };
-    };
-    const beginDraw = (event: React.PointerEvent<HTMLCanvasElement>) => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const context = canvas.getContext("2d");
-      if (!context) return;
-      const p = point(event);
-      drawingRef.current = true;
-      canvas.setPointerCapture(event.pointerId);
-      context.strokeStyle = color;
-      context.lineWidth = brush;
-      context.lineCap = "round";
-      context.lineJoin = "round";
-      context.beginPath();
-      context.moveTo(p.x, p.y);
-    };
-    const draw = (event: React.PointerEvent<HTMLCanvasElement>) => {
-      if (!drawingRef.current) return;
-      const context = canvasRef.current?.getContext("2d");
-      if (!context) return;
-      const p = point(event);
-      context.lineTo(p.x, p.y);
-      context.stroke();
-    };
-    const endDraw = () => {
-      if (!drawingRef.current) return;
-      drawingRef.current = false;
-      const canvas = canvasRef.current;
-      if (canvas) setDrawing(canvas.toDataURL("image/png"));
-    };
-    const openDraft = (draft: Draft) => {
-      setDraftId(draft.id);
-      setTitle(draft.title);
-      setText(draft.text);
-      setDrawing(draft.drawing);
-    };
-    const newDraft = () => {
-      setDraftId(null);
-      setTitle("未命名便签");
-      setText("");
-      setDrawing("");
-      setMode("text");
-    };
-    const saveDraft = async () => {
-      const result = await mutate({ action: "save-draft", id: draftId, title, text, drawing }, "草稿已保存");
-      if (result && typeof result === "object" && typeof result.id === "string") setDraftId(result.id);
-    };
-
-    return (
-      <div className="space-y-5">
-        <PageTitle
-          title="草稿本"
-          note="文字或手写都能保存到当前账户；便签会在这里留下历史记录。"
-          action={<Button onClick={newDraft}><Plus className="size-4" />新建便签</Button>}
-        />
-        <section className="grid gap-5 xl:grid-cols-[260px_minmax(0,1fr)]">
-          <aside className="rounded-3xl border bg-white p-4 shadow-sm">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="font-semibold">历史便签</h2>
-              <span className="text-xs text-[#697386]">{(appData.drafts || []).length} 条</span>
-            </div>
-            <div className="max-h-[52rem] space-y-2 overflow-y-auto pr-1">
-              {(appData.drafts || []).map((draft) => (
-                <div key={draft.id} className={`group rounded-2xl border p-3 transition ${draft.id === draftId ? "border-[#ABD7FB] bg-[#EFF8FF]" : "hover:border-[#D8CDC6]"}`}>
-                  <button className="block w-full text-left" onClick={() => openDraft(draft)}>
-                    <b className="block truncate text-sm">{draft.title}</b>
-                    <span className="mt-1 block truncate text-xs text-[#697386]">{draft.text || (draft.drawing ? "手写便签" : "空白便签")}</span>
-                  </button>
-                  <button className="mt-2 text-xs text-[#A64B1C] hover:underline" onClick={() => mutate({ action: "delete-draft", id: draft.id }, "草稿已删除")}>删除</button>
-                </div>
-              ))}
-              {!(appData.drafts || []).length && <p className="p-3 text-sm leading-6 text-[#697386]">新建一张便签，之后会在这里保留历史。</p>}
-            </div>
-          </aside>
-          <div className="rounded-3xl border bg-[#FFFDFB] p-5 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <Input className="max-w-sm bg-white font-medium" value={title} onChange={(event) => setTitle(event.target.value)} aria-label="便签标题" />
-              <div className="grid grid-cols-2 rounded-xl border bg-[#F8F3F0] p-1">
-                <button className={`rounded-lg px-4 py-2 text-sm ${mode === "text" ? "bg-white font-semibold shadow-sm" : "text-[#697386]"}`} onClick={() => setMode("text")}>文本框</button>
-                <button className={`rounded-lg px-4 py-2 text-sm ${mode === "draw" ? "bg-white font-semibold shadow-sm" : "text-[#697386]"}`} onClick={() => setMode("draw")}>手写</button>
-              </div>
-            </div>
-            {mode === "text" ? (
-              <textarea className="mt-5 min-h-[30rem] w-full resize-y rounded-2xl border bg-white p-5 text-base leading-8 outline-none focus:border-[#ABD7FB]" placeholder="在这里写下联想、易错点或练习句……" value={text} onChange={(event) => setText(event.target.value)} />
-            ) : (
-              <div className="mt-5">
-                <div className="mb-3 flex flex-wrap items-center gap-3 rounded-2xl bg-[#F8F3F0] p-3">
-                  <span className="text-xs text-[#697386]">笔触</span>
-                  {["#243247", "#A64B1C", "#28628F", "#5B7F45", "#8F5DA8"].map((value) => <button key={value} aria-label={value} onClick={() => setColor(value)} className={`size-6 rounded-full border-2 ${color === value ? "border-[#243247] ring-2 ring-[#ABD7FB]" : "border-white"}`} style={{ background: value }} />)}
-                  <input aria-label="笔触粗细" type="range" min="2" max="16" value={brush} onChange={(event) => setBrush(Number(event.target.value))} />
-                  <Button size="sm" variant="outline" onClick={() => { setDrawing(""); restoreCanvas(""); }}>清空画布</Button>
-                </div>
-                <canvas ref={canvasRef} width={960} height={560} className="aspect-[12/7] w-full touch-none rounded-2xl border bg-white" onPointerDown={beginDraw} onPointerMove={draw} onPointerUp={endDraw} onPointerCancel={endDraw} />
-              </div>
-            )}
-            <div className="mt-4 flex justify-end">
-              <Button onClick={saveDraft}><Bookmark className="size-4" />保存便签</Button>
-            </div>
-          </div>
-        </section>
-      </div>
-    );
-  }
-
-  function WordsView() {
-    if (!appData.wordsLoaded)
-      return <PageLoading title="正在加载完整词汇表…" />;
-    return (
-      <div className="space-y-5">
-        <PageTitle
-          title="词汇总表"
-          note="查看已背诵和待背诵部分，也可以手动加入今日任务。"
-          action={
-            <Button onClick={exportCsv} variant="outline">
-              导出 CSV
-            </Button>
-          }
-        />
-        <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          <SmallStat label="总词数" value={totalWords} />
-          <SmallStat label="已背诵" value={learned} />
-          <SmallStat label="待背诵" value={totalWords - learned} />
-          <SmallStat label="不熟练" value={unfamiliar} />
-          <SmallStat label="很熟练" value={mastered} />
-          <SmallStat label="今日完成" value={newDone + reviewDone} />
-        </div>
-        <div className="flex flex-wrap gap-3 rounded-2xl border bg-white p-3">
-          <div className="relative min-w-64 flex-1">
-            <Search className="absolute left-3 top-3 size-4 text-[#8A94A4]" />
-            <Input
-              className="pl-9"
-              placeholder="搜索单词、中文或搭配"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-          </div>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-10 rounded-xl border bg-white px-3 text-sm"
-          >
-            <option value="all">全部状态</option>
-            <option value="unlearned">待背诵</option>
-            <option value="learned">已背诵</option>
-            <option value="unfamiliar">不熟练</option>
-            <option value="familiar">微熟练</option>
-            <option value="mastered">很熟练</option>
-          </select>
-          <select value={wordOrder} onChange={(e) => setWordOrder(e.target.value as "corpus" | "exam")} className="h-10 rounded-xl border bg-white px-3 text-sm">
-            <option value="corpus">按词库顺序</option>
-            <option value="exam">真题优先排序</option>
-          </select>
-        </div>
-        <section className="overflow-hidden rounded-3xl border bg-white">
-          <Table className="table-fixed w-full">
-            <TableHeader>
-              <TableRow className="bg-[#FAF6F3]">
-                <TableHead className="pl-5">单词</TableHead>
-                <TableHead>完整含义与必记搭配</TableHead>
-                <TableHead>学习状态</TableHead>
-                <TableHead>真题标签</TableHead>
-                <TableHead className="w-[14%]">下次复习</TableHead>
-                <TableHead>次数</TableHead>
+   …2352 tokens truncated…>次数</TableHead>
                 <TableHead className="pr-5 text-right">操作</TableHead>
               </TableRow>
             </TableHeader>
