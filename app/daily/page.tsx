@@ -25,10 +25,10 @@ const DAILY_TEXT = "#465a6b";
 const MODULE_DONE_KEY = "__module_complete__";
 
 const modules: Record<HubType, { label: string; hint: string; color: string; icon: typeof Newspaper }> = {
-  growth_brief: { label: "每日简报", hint: "信息、机会与值得留意的事", color: "bg-[#abd7fb]", icon: Newspaper },
-  fund_strategy: { label: "基金策略", hint: "09:00 的完整策略、仓位与触发条件", color: "bg-[#fcceb4]", icon: LineChart },
-  market_intraday: { label: "盘中风控", hint: "14:00 的盘中复盘与风险动作", color: "bg-[#f7d6ae]", icon: LineChart },
-  workout_plan: { label: "今日训练", hint: "DailyGlow 运动塑形计划", color: "bg-[#d2e0aa]", icon: Dumbbell },
+  growth_brief: { label: "每日简报", hint: "信息、机会与值得留意的事", color: "bg-[#c7e6fb]", icon: Newspaper },
+  fund_strategy: { label: "基金策略", hint: "09:00 的完整策略、仓位与触发条件", color: "bg-[#ffe0cd]", icon: LineChart },
+  market_intraday: { label: "盘中风控", hint: "14:00 的盘中复盘与风险动作", color: "bg-[#e8f0cf]", icon: LineChart },
+  workout_plan: { label: "今日训练", hint: "DailyGlow 运动塑形计划", color: "bg-[#e2ebc9]", icon: Dumbbell },
 };
 
 function today() { return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date()); }
