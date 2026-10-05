@@ -26,7 +26,7 @@ const MODULE_DONE_KEY = "__module_complete__";
 
 const modules: Record<HubType, { label: string; hint: string; color: string; icon: typeof Newspaper }> = {
   growth_brief: { label: "每日简报", hint: "信息、机会与值得留意的事", color: "bg-[#c7e6fb]", icon: Newspaper },
-  fund_strategy: { label: "基金策略", hint: "09:00 的完整策略、仓位与触发条件", color: "bg-[#ffe0cd]", icon: LineChart },
+  fund_strategy: { label: "基金策略", hint: "09:00 的完整策略、仓位与触发条件", color: "bg-[#f8d7da]", icon: LineChart },
   market_intraday: { label: "盘中风控", hint: "14:00 的盘中复盘与风险动作", color: "bg-[#e8f0cf]", icon: LineChart },
   workout_plan: { label: "今日训练", hint: "DailyGlow 运动塑形计划", color: "bg-[#e2ebc9]", icon: Dumbbell },
 };
