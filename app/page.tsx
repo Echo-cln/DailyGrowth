@@ -708,7 +708,7 @@ export default function Home() {
               <h1 className="mt-2 text-2xl font-black tracking-tight text-[#243247] sm:text-3xl">先学词，也别忘了照顾今天的自己。</h1>
               <p className="mt-2 leading-6 text-sm text-[#697386]">溯 · 辞是你的学习模块；每日简报、基金观察和训练计划都在同一个私有云端账户里。</p>
             </div>
-            <Link href="/daily" className="inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-[#243247] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#1B2A3D]">
+            <Link href="/daily" className="inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-[#CFE7F1] px-5 py-3 text-sm font-bold text-[#465A6B] shadow-sm transition hover:-translate-y-0.5 hover:bg-[#B9DAE7]">
               打开今日成长中心 <ChevronRight className="size-4" />
             </Link>
           </div>
@@ -2244,7 +2244,7 @@ export default function Home() {
             className="flex shrink-0 items-center gap-3"
             onClick={() => setView("growth")}
           >
-            <span className="grid size-10 place-items-center rounded-2xl bg-[#243247] text-white shadow-sm">
+            <span className="grid size-10 place-items-center rounded-2xl bg-[#CFE7F1] text-[#465A6B] shadow-sm">
               <Sparkles className="size-5" />
             </span>
             <span className="hidden text-left sm:block">
@@ -2257,7 +2257,7 @@ export default function Home() {
               <button
                 key={item.id}
                 onClick={() => setView(item.id)}
-                className={`flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition ${view === item.id ? "bg-[#FCCEB4] text-[#7F3C1D]" : "text-[#697386] hover:bg-[#F4ECE8] hover:text-[#243247]"}`}
+                className={`flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition ${view === item.id ? "bg-[#FFD8B8] text-[#465A6B]" : "text-[#697386] hover:bg-[#F4ECE8] hover:text-[#465A6B]"}`}
               >
                 <item.icon className="size-4" />
                 {item.label}
@@ -2608,7 +2608,7 @@ function LoginScreen({
           <div className="absolute bottom-0 left-0 h-28 w-full bg-[radial-gradient(ellipse_at_bottom,#D7E7B0_0%,transparent_65%)] opacity-60" />
           <div className="relative flex h-full flex-col">
             <div className="flex items-center gap-3">
-              <span className="grid size-12 place-items-center rounded-2xl bg-[#243247] text-white shadow-lg shadow-[#243247]/20">
+              <span className="grid size-12 place-items-center rounded-2xl bg-[#CFE7F1] text-[#465A6B] shadow-lg shadow-[#CFE7F1]/50">
                 <Sparkles className="size-6" />
               </span>
               <div>
