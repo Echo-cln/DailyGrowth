@@ -7,6 +7,6 @@ export async function POST(request: Request) {
     return Response.json({ error: "请先登录" }, { status: 401 });
   }
   return Response.json({
-    error: "自动写入词典资料已暂停。当前请通过 Oxford Learner’s Dictionaries 或 Cambridge 官方页面查询；取得允许云端保存的许可后再启用自动补全。",
+    error: "自动补全尚未启用：需要 Oxford/Cambridge 授权明确允许将词典内容保存到云端，并配置服务端 API 凭据。取得授权前不会写入词库。",
   }, { status: 409 });
 }
