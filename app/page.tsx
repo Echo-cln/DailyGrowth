@@ -296,6 +296,7 @@ const proficiencyStyles: Record<Proficiency, string> = {
 export default function Home() {
   const [data, setData] = useState<State | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [enrichingWordId, setEnrichingWordId] = useState<number | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [view, setView] = useState<View>("growth");
   const [loading, setLoading] = useState(true);
@@ -448,6 +449,25 @@ export default function Home() {
     if (success) toast.success(success);
     await load(Boolean(data?.wordsLoaded));
     return payload;
+  };
+  const enrichWordFromLicensedSources = async (word: Word) => {
+    if (enrichingWordId === word.id) return;
+    setEnrichingWordId(word.id);
+    try {
+      const response = await authorizedFetch("/api/free-lexicon", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ word: word.word }),
+      });
+      const payload = (await response.json()) as { error?: string };
+      if (!response.ok) throw new Error(payload.error || "自动补全暂不可用");
+      await load(Boolean(data?.wordsLoaded));
+      toast.success("词条资料已自动补齐");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "自动补全暂不可用");
+    } finally {
+      setEnrichingWordId(null);
+    }
   };
   const rateWord = async (word: Word, proficiency: Proficiency) => {
     if (!data || !accessToken) return;
@@ -1189,14 +1209,12 @@ export default function Home() {
                 {(!word.phonetic_uk || !word.phonetic_us || !word.core_meaning || /释义待补充|meaning pending/i.test(word.core_meaning) ||
                   !formatCollocations(word.collocations).length || formatCollocations(word.collocations).some((item) => !item.translation) ||
                   !cleanExample(word.example) || !word.example_translation) && (
-                  <div className="mt-2 space-y-1.5">
-                    <span className="block text-[10px] text-[#8A94A4]">权威词典查询（在线查看，不会自动保存入库）</span>
-                    <div className="flex flex-wrap gap-1.5">
-                      <a href={`https://www.oxfordlearnersdictionaries.com/search/english/?q=${encodeURIComponent(word.word)}`} target="_blank" rel="noreferrer"
-                        className="rounded-md border border-[#E5DAD4] px-2.5 py-1.5 text-xs text-[#28628F] hover:bg-[#EFF8FF]">Oxford Learner’s</a>
-                      <a href={`https://dictionary.cambridge.org/search/english/direct/?q=${encodeURIComponent(word.word)}`} target="_blank" rel="noreferrer"
-                        className="rounded-md border border-[#E5DAD4] px-2.5 py-1.5 text-xs text-[#28628F] hover:bg-[#EFF8FF]">Cambridge</a>
-                    </div>
+                  <div className="mt-2 space-y-1">
+                    <button type="button" onClick={() => void enrichWordFromLicensedSources(word)} disabled={enrichingWordId === word.id}
+                      className="inline-flex items-center gap-1 rounded-md border border-dashed border-[#ABD7FB] px-2.5 py-1.5 text-xs text-[#28628F] hover:bg-[#EFF8FF] disabled:cursor-wait disabled:opacity-60">
+                      {enrichingWordId === word.id ? <><Loader2 className="size-3 animate-spin" />正在补齐</> : "自动补全缺失资料"}
+                    </button>
+                    <span className="block text-[10px] text-[#8A94A4]">仅在配置允许将词典资料保存到云端的授权后启用</span>
                   </div>
                 )}
                 <p
