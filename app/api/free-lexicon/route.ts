@@ -1,6 +1,6 @@
 import { authenticate, dbRequest } from "@/lib/supabase-rest";
 
-type Row = Record<string, any>;
+type Row = Record<string, unknown>;
 type ApiTranslation = { language?: { code?: unknown }; word?: unknown };
 type ApiSense = { definition?: unknown; examples?: unknown; translations?: ApiTranslation[] };
 type ApiPronunciation = { type?: unknown; text?: unknown; tags?: unknown };
