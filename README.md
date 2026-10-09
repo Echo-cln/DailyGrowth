@@ -19,3 +19,17 @@
 
 - Supabase 表与 RLS 已于 2026-09-29 创建并验证。
 - 下一步：迁入 DailyGlow 网页代码，接入 `/daily` 首页与 `/api/daily-hub` 云端接口。
+
+
+## 溯·辞词汇补全邮件
+
+Gmail Apps Script 每 5 分钟扫描一次补全邮件，并调用受保护的 /api/vocabulary-enrichment。导入只补原始 CET-6 核心词库中的空字段；已有例句（尤其真题原句）不会被替换。补全后，今日新词与复习项读取同一词库，不会重复创建学习任务。
+
+邮件正文使用以下标记包住 JSON。Apps Script 使用现有 DAILYGLOW_IMPORT_URL 和 DAILYGLOW_IMPORT_KEY 配置，无需新增密钥；更新脚本后运行一次 setupDailyGlowBridge 即可让原有 5 分钟触发器继续扫描。
+
+    DAILYGLOW_CET6_ENRICHMENT_V1
+    BEGIN_DAILYGLOW_VOCAB_JSON
+    {"date":"2026-10-09","words":[{"word":"example","phoneticUk":"/ɪɡˈzɑːmpəl/","phoneticUs":"/ɪɡˈzæmpəl/","phoneticSourceLabel":"Oxford Learner's Dictionaries","example":{"sentence":"She gave a clear example to explain the rule.","translation":"她举了一个清晰的例子来解释这条规则。","sourceType":"original","sourceLabel":"DailyGlow 原创六级语境例句"},"collocations":[{"phrase":"a typical example","translation":"一个典型的例子","sourceLabel":"Oxford Learner's Dictionaries"}]}]}
+    END_DAILYGLOW_VOCAB_JSON
+
+example.sourceType 只能是 original 或 dictionary；不要把非真题例句标成真题。词条的音标和搭配也应带来源名称。导入接口按单词逐条校验并返回补全/跳过明细。

@@ -614,6 +614,20 @@ export default function Home() {
     );
     setSelection(null);
   };
+  const addSelectionToWordbook = async () => {
+    if (!selection?.wordId) return;
+    const exists = (appData.wordbook || []).some((item) => item.id === selection.wordId);
+    if (exists) {
+      toast.success("这个词已经在生词本");
+      setSelection(null);
+      return;
+    }
+    const saved = await mutate(
+      { action: "add-to-wordbook", wordId: selection.wordId, sourceContext: "溯·辞选词" },
+      "已加入生词本",
+    );
+    if (saved) setSelection(null);
+  };
 
   const reviewItems =
     data?.taskItems.filter((item) => item.item_type === "review") ?? [];
@@ -2340,6 +2354,19 @@ export default function Home() {
             <Bookmark className="size-4" />
             收藏
           </Button>
+          {selection.wordId && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="shrink-0"
+              disabled={(appData.wordbook || []).some((item) => item.id === selection.wordId)}
+              onClick={() => void addSelectionToWordbook()}
+              title="将当前词条加入生词本"
+            >
+              <Bookmark className="size-4" />
+              {(appData.wordbook || []).some((item) => item.id === selection.wordId) ? "已在生词本" : "记为生词"}
+            </Button>
+          )}
           <button
             className="px-2 text-[#697386]"
             onClick={() => setSelection(null)}

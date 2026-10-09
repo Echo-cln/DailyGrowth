@@ -5,12 +5,14 @@
  * Project Settings > Script properties. Do not put either value in this file.
  */
 const IMPORTED_LABEL = 'DailyGlow/Imported';
+const VOCAB_IMPORTED_LABEL = 'DailyGlow/VocabularyImported';
 
 function setupDailyGlowBridge() {
   ScriptApp.getProjectTriggers()
     .filter(trigger => trigger.getHandlerFunction() === 'importDailyGlowEmails')
     .forEach(trigger => ScriptApp.deleteTrigger(trigger));
   GmailApp.getUserLabelByName(IMPORTED_LABEL) || GmailApp.createLabel(IMPORTED_LABEL);
+  GmailApp.getUserLabelByName(VOCAB_IMPORTED_LABEL) || GmailApp.createLabel(VOCAB_IMPORTED_LABEL);
   ScriptApp.newTrigger('importDailyGlowEmails').timeBased().everyMinutes(5).create();
 }
 
@@ -60,6 +62,53 @@ function importDailyGlowEmails() {
     });
   });
   Logger.log('DailyGlow：扫描 ' + scanned + ' 封，匹配 ' + matched + ' 封，导入 ' + imported + ' 封');
+  importDailyGlowVocabularyEmails_(endpoint, key);
+}
+
+function importDailyGlowVocabularyEmails_(importEndpoint, key) {
+  const endpoint = importEndpoint.replace(/\/api\/daily-import\/?$/, '/api/vocabulary-enrichment');
+  if (endpoint === importEndpoint) throw new Error('DAILYGLOW_IMPORT_URL 应以 /api/daily-import 结尾');
+  const label = GmailApp.getUserLabelByName(VOCAB_IMPORTED_LABEL) || GmailApp.createLabel(VOCAB_IMPORTED_LABEL);
+  const query = 'newer_than:30d -label:"DailyGlow/VocabularyImported"';
+  let matched = 0;
+  let imported = 0;
+  GmailApp.search(query, 0, 100).forEach(thread => {
+    if (thread.getLabels().some(item => item.getName() === VOCAB_IMPORTED_LABEL)) return;
+    thread.getMessages().forEach(message => {
+      if (thread.getLabels().some(item => item.getName() === VOCAB_IMPORTED_LABEL)) return;
+      const body = message.getPlainBody().trim();
+      const payload = parseVocabularyEnrichmentEmail_(body);
+      if (!payload) return;
+      matched += 1;
+      if (body.length > 90000) throw new Error('词汇补全邮件超过 90,000 字符：' + message.getSubject());
+      payload.emailMessageId = message.getId();
+      const response = UrlFetchApp.fetch(endpoint, {
+        method: 'post', contentType: 'application/json',
+        headers: { 'x-dailyglow-import-key': key },
+        payload: JSON.stringify(payload), muteHttpExceptions: true,
+      });
+      if (response.getResponseCode() < 200 || response.getResponseCode() >= 300)
+        throw new Error('溯·辞补全导入失败：' + response.getResponseCode() + ' ' + response.getContentText());
+      thread.addLabel(label);
+      imported += 1;
+    });
+  });
+  Logger.log('溯·辞补全：匹配 ' + matched + ' 封，导入 ' + imported + ' 封');
+}
+
+function parseVocabularyEnrichmentEmail_(body) {
+  const marker = 'DAILYGLOW_CET6_ENRICHMENT_V1';
+  const startMarker = 'BEGIN_DAILYGLOW_VOCAB_JSON';
+  const endMarker = 'END_DAILYGLOW_VOCAB_JSON';
+  if (!body.includes(marker)) return null;
+  const start = body.indexOf(startMarker);
+  const end = body.indexOf(endMarker, start + startMarker.length);
+  if (start < 0 || end < 0) throw new Error('溯·辞邮件缺少 JSON 起止标记');
+  const raw = body.slice(start + startMarker.length, end).trim();
+  const payload = JSON.parse(raw);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(payload.date || '')) || !Array.isArray(payload.words) || !payload.words.length)
+    throw new Error('溯·辞邮件 JSON 必须包含 date 与非空 words');
+  return payload;
 }
 
 function parseDailyGlowMessage_(subject, body) {
