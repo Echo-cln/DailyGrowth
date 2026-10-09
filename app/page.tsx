@@ -297,6 +297,7 @@ export default function Home() {
   const [authReady, setAuthReady] = useState(false);
   const [view, setView] = useState<View>("growth");
   const [loading, setLoading] = useState(true);
+  const [enrichingWordId, setEnrichingWordId] = useState<number | null>(null);
   const [hiddenParts, setHiddenParts] = useState({ meaning: false, collocation: false, example: false });
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -448,18 +449,26 @@ export default function Home() {
     return payload;
   };
   const enrichFromFreeSources = async (word: Word) => {
-    const response = await authorizedFetch("/api/free-lexicon", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ word: word.word }),
-    });
-    const payload = (await response.json()) as { error?: string; note?: string };
-    if (!response.ok) {
-      toast.error(payload.error || "学习内容补全失败");
-      return;
+    if (enrichingWordId === word.id) return;
+    setEnrichingWordId(word.id);
+    try {
+      const response = await authorizedFetch("/api/free-lexicon", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ word: word.word }),
+      });
+      const payload = (await response.json()) as { error?: string; note?: string };
+      if (!response.ok) {
+        toast.error(payload.error || "学习内容补全失败");
+        return;
+      }
+      toast.success(payload.note || "已检查并更新词条");
+      await load(Boolean(data?.wordsLoaded));
+    } catch {
+      toast.error("补齐请求暂时失败，请检查网络后重试");
+    } finally {
+      setEnrichingWordId(null);
     }
-    toast.success(payload.note || "已补全学习内容");
-    await load(Boolean(data?.wordsLoaded));
   };
   const rateWord = async (word: Word, proficiency: Proficiency) => {
     if (!data || !accessToken) return;
@@ -1186,9 +1195,7 @@ export default function Home() {
                     </div>
                   ))}
                   {!formatCollocations(word.collocations).length && (
-                    <button type="button" onClick={() => void enrichFromFreeSources(word)} className="rounded-lg border border-dashed border-[#ABD7FB] px-3 py-2 text-xs text-[#28628F] hover:bg-[#EFF8FF]">
-                      补全公开语料搭配
-                    </button>
+                    <span className="text-xs text-[#8A94A4]">搭配待补充</span>
                   )}
                 </div>
               </TableCell>
@@ -1196,8 +1203,16 @@ export default function Home() {
                 <p className="leading-6">
                   {cleanExample(word.example)
                     ? renderMarkedText(cleanExample(word.example), word.word, appData.highlights.filter((h) => h.word_id === word.id))
-                    : <span className="inline-flex flex-wrap items-center gap-2 text-[#8A94A4]">例句数据待整理 <button type="button" onClick={() => void enrichFromFreeSources(word)} className="rounded-md border border-dashed border-[#ABD7FB] px-2 py-1 text-xs text-[#28628F] hover:bg-[#EFF8FF]">补充学习例句</button></span>}
+                    : <span className="text-[#8A94A4]">例句待补充</span>}
                 </p>
+                {(!word.phonetic_uk || !word.phonetic_us || !word.core_meaning || /释义待补充|meaning pending/i.test(word.core_meaning) ||
+                  !formatCollocations(word.collocations).length || formatCollocations(word.collocations).some((item) => !item.translation) ||
+                  !cleanExample(word.example) || !word.example_translation) && (
+                  <button type="button" onClick={() => void enrichFromFreeSources(word)} disabled={enrichingWordId === word.id}
+                    className="mt-2 inline-flex items-center gap-1 rounded-md border border-dashed border-[#ABD7FB] px-2.5 py-1.5 text-xs text-[#28628F] hover:bg-[#EFF8FF] disabled:cursor-wait disabled:opacity-60">
+                    {enrichingWordId === word.id ? <><Loader2 className="size-3 animate-spin" />正在补齐</> : "补齐缺失词条资料"}
+                  </button>
+                )}
                 <p
                   className={`mt-2 text-sm leading-6 text-[#697386] ${hiddenParts.example ? "select-none rounded bg-[#E9E4E1] text-transparent" : ""}`}
                 >
