@@ -61,7 +61,8 @@ type Word = {
   phonetic_us?: string;
   part_of_speech: string;
   core_meaning: string;
-  collocations: Array<string | { phrase?: string; translation?: string; source?: string }> | string[];
+  meaning_source?: string;
+  collocations: Array<string | { phrase?: string; translation?: string; source?: string; verified?: boolean }> | string[];
   example: string;
   example_translation: string;
   example_type: string;
@@ -173,7 +174,8 @@ function formatCollocations(collocations: unknown) {
     return {
       phrase: cleanDisplayText(source.phrase, 100),
       translation: cleanDisplayText(source.translation, 100),
-      source: cleanDisplayText(source.source, 100),
+      source: cleanDisplayText(source.source, 160),
+      verified: typeof item === "object" && item ? item.verified : undefined,
     };
   }).filter((x) => x.phrase);
 }
@@ -1181,6 +1183,7 @@ export default function Home() {
                     <div key={m} className="leading-8 [&+div]:mt-2">{m}</div>
                   ))}
                 </span>
+                {word.meaning_source && <p className="mt-1 text-[10px] leading-4 text-[#8A94A4]">来源说明：{word.meaning_source}</p>}
               </TableCell>
               <TableCell className="max-w-60 whitespace-normal align-top">
                 <div className="space-y-2.5">
@@ -1192,6 +1195,7 @@ export default function Home() {
                       {x.translation && (
                         <span className="block text-sm leading-5 text-[#697386]">{x.translation}</span>
                       )}
+                      {x.source && <span className="block text-[10px] leading-4 text-[#8A94A4]">来源：{x.source}{x.verified === false ? " · 待核验" : ""}</span>}
                     </div>
                   ))}
                   {!formatCollocations(word.collocations).length && (
