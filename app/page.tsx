@@ -1212,7 +1212,7 @@ export default function Home() {
                     className="rounded-md border border-[#E5DAD4] px-2 py-0.5 text-[11px] text-[#A64B1C] hover:border-[#F98C53]"
                     onClick={() => mutate({ action: "add-to-wordbook", wordId: word.id, sourceContext: "例句关联词" }, "已记入生词本")}
                   >
-                    {(appData.wordbook || []).some((item) => item.id === word.id) ? "已在生词本" : "记为生词"}
+                    {(appData.wordbook || []).some((item) => item.id === word.id) ? "已在生词本" : "加入生词本"}
                   </button>
                   {word.source && (
                     <span className="text-[11px] text-[#697386]">
