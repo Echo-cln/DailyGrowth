@@ -13,7 +13,7 @@ type HistoryDay = { date: string; label: string; words: string[]; reviews?: stri
 const history = historyData as HistoryDay[];
 const unauthorized = () => Response.json({ error: "请先登录", code: "UNAUTHORIZED" }, { status: 401 });
 // Lexicon is cached briefly to avoid repeated full-corpus reads.
-const LEXICON_CACHE_TTL_MS = 10 * 60 * 1000;
+const LEXICON_CACHE_TTL_MS = 60 * 1000;
 type Lexicon = {
   words: Row[];
   sensesByWord: Map<number, Row[]>;

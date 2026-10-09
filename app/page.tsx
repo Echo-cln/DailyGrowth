@@ -614,6 +614,20 @@ export default function Home() {
     );
     setSelection(null);
   };
+  const addSelectionToWordbook = async () => {
+    if (!selection?.wordId) return;
+    const exists = (appData.wordbook || []).some((item) => item.id === selection.wordId);
+    if (exists) {
+      toast.success("这个词已经在生词本");
+      setSelection(null);
+      return;
+    }
+    const saved = await mutate(
+      { action: "add-to-wordbook", wordId: selection.wordId, sourceContext: "溯·辞选词" },
+      "已加入生词本",
+    );
+    if (saved) setSelection(null);
+  };
 
   const reviewItems =
     data?.taskItems.filter((item) => item.item_type === "review") ?? [];
@@ -1198,7 +1212,7 @@ export default function Home() {
                     className="rounded-md border border-[#E5DAD4] px-2 py-0.5 text-[11px] text-[#A64B1C] hover:border-[#F98C53]"
                     onClick={() => mutate({ action: "add-to-wordbook", wordId: word.id, sourceContext: "例句关联词" }, "已记入生词本")}
                   >
-                    {(appData.wordbook || []).some((item) => item.id === word.id) ? "已在生词本" : "记为生词"}
+                    {(appData.wordbook || []).some((item) => item.id === word.id) ? "已在生词本" : "加入生词本"}
                   </button>
                   {word.source && (
                     <span className="text-[11px] text-[#697386]">
@@ -2340,6 +2354,19 @@ export default function Home() {
             <Bookmark className="size-4" />
             收藏
           </Button>
+          {selection.wordId && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="shrink-0"
+              disabled={(appData.wordbook || []).some((item) => item.id === selection.wordId)}
+              onClick={() => void addSelectionToWordbook()}
+              title="将当前词条加入生词本"
+            >
+              <Bookmark className="size-4" />
+              {(appData.wordbook || []).some((item) => item.id === selection.wordId) ? "已在生词本" : "记为生词"}
+            </Button>
+          )}
           <button
             className="px-2 text-[#697386]"
             onClick={() => setSelection(null)}
