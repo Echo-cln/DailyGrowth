@@ -320,15 +320,15 @@ function shapeWord(word: Row, lexicon: Lexicon, progress?: Row, item?: Row) {
   return {
     id: Number(word.id), word: word.lemma, phonetic: word.phonetic_uk || word.phonetic_us || "",
     phonetic_uk: word.phonetic_uk || "", phonetic_us: word.phonetic_us || "",
-    part_of_speech: String(sense.part_of_speech || ""), core_meaning: sense.core_meaning || "释义待补充",
+    part_of_speech: String(sense.part_of_speech || ""), core_meaning: sense.core_meaning || "释义待补充", meaning_source: String(sense.note || ""),
     meanings: senses.map((row) => ({ part_of_speech: row.part_of_speech || "", meaning: row.core_meaning || "" })),
     collocations: senses.flatMap((row) => (lexicon.collocationsBySense.get(Number(row.id)) || [])
       .slice()
       .sort((a, b) => Number(Boolean(b.verified)) - Number(Boolean(a.verified)) || Number(a.rank || 0) - Number(b.rank || 0))
-      .map((item) => ({ phrase: item.content || "", translation: item.translation || "", source: item.source_label || "" }))).slice(0, 3),
+      .map((item) => ({ phrase: item.content || "", translation: item.translation || "", source: item.source_label || "", verified: item.verified }))).slice(0, 3),
     example: storedSentence,
     example_translation: storedSentence ? String(example.translation || "").trim() : "",
-    example_type: !storedSentence ? "例句待补" : example.source_type === "exam" ? "真题原句" : "学习例句",
+    example_type: !storedSentence ? "例句待补" : example.source_type === "exam" ? "真题原句" : example.source_type === "dictionary" ? (String(example.source_label || "").includes("Wiktionary") ? "开放词典例句 · 非真题" : "词典例句 · 非真题") : "学习例句",
     source: !storedSentence ? "例句待补充" : example.source_label || "溯·辞学习例句",
     comparison: comparison.distinction ? { similarWords: comparison.similar_words || [], distinction: comparison.distinction, contrastExample: comparison.contrast_example || "" } : null,
     example_is_fallback: !storedSentence,
