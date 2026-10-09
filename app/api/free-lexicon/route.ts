@@ -6,11 +6,9 @@ type ApiSense = { definition?: unknown; examples?: unknown; translations?: ApiTr
 type ApiPronunciation = { type?: unknown; text?: unknown; tags?: unknown };
 type ApiEntry = { language?: { code?: unknown }; partOfSpeech?: unknown; pronunciations?: ApiPronunciation[]; senses?: ApiSense[] };
 type DictionaryPayload = { entries?: ApiEntry[]; source?: { url?: unknown; license?: { name?: unknown; url?: unknown } } };
-type DatamuseRow = { word?: unknown };
 
 const DICTIONARY_LABEL = "Free Dictionary API · Wiktionary";
 const LICENSE_FALLBACK = "CC BY-SA 4.0";
-const DATAMUSE_LABEL = "Datamuse · Google Books Ngrams";
 const TRANSLATION_LABEL = "MyMemory machine translation";
 
 function clean(value: unknown, max = 500) {
@@ -67,23 +65,6 @@ async function translateToChinese(text: string) {
     return hasChinese(translation) ? translation : "";
   } catch {
     return "";
-  }
-}
-async function datamusePhrases(word: string) {
-  const base = "https://api.datamuse.com/words";
-  try {
-    const [followers, predecessors] = await Promise.all([
-      fetch(base + "?rel_bga=" + encodeURIComponent(word) + "&max=4", { cache: "no-store", signal: AbortSignal.timeout(7000) }),
-      fetch(base + "?rel_bgb=" + encodeURIComponent(word) + "&max=4", { cache: "no-store", signal: AbortSignal.timeout(7000) }),
-    ]);
-    const toWords = async (response: Response) => response.ok
-      ? ((await response.json()) as DatamuseRow[]).map((row) => String(row.word || "").trim())
-      : [];
-    const [after, before] = await Promise.all([toWords(followers), toWords(predecessors)]);
-    const permitted = (value: string) => /^[a-z][a-z' -]{0,80}$/i.test(value) && !value.toLowerCase().includes(word);
-    return unique([...after.filter(permitted).map((value) => word + " " + value), ...before.filter(permitted).map((value) => value + " " + word)]).slice(0, 3);
-  } catch {
-    return [];
   }
 }
 function ipaFor(entries: ApiEntry[], dialect: "uk" | "us") {
@@ -177,7 +158,7 @@ export async function POST(request: Request) {
       const matchedEntry = englishEntries.find((entry) => entry.senses?.includes(item.apiSense!));
       const sensePatch: Row = { core_meaning: meaning };
       if (!clean(item.sense.part_of_speech, 40)) sensePatch.part_of_speech = posCode(matchedEntry?.partOfSpeech);
-      if (!clean(item.sense.note, 300)) sensePatch.note = "词典来源：" + DICTIONARY_LABEL + "；中文释义为词典翻译或机器翻译，建议结合例句核对。";
+      if (!clean(item.sense.note, 300)) sensePatch.note = "开放词典来源：Wiktionary（社区维护，非权威词典）；中文释义可能为机器翻译，建议核对。";
       await patch("vocabulary_senses", "id=eq." + item.sense.id, sensePatch);
       meaningsAdded++;
     }
@@ -186,14 +167,12 @@ export async function POST(request: Request) {
       sources.push(DICTIONARY_LABEL + " / Chinese translations");
     }
 
-    const phrasePool = unique([
-      ...existingCollocations.filter((item) => !clean(item.translation, 160)).map((item) => clean(item.content, 120)),
-      ...(await datamusePhrases(word)),
-    ]).filter((phrase) => /^[a-z][a-z' -]{0,119}$/i.test(phrase)).slice(0, 5);
+    const phrasePool = unique(existingCollocations
+      .filter((item) => !clean(item.translation, 160))
+      .map((item) => clean(item.content, 120)))
+      .filter((phrase) => /^[a-z][a-z' -]{0,119}$/i.test(phrase)).slice(0, 5);
     const phrasesWithTranslation = await Promise.all(phrasePool.map(async (phrase) => ({ phrase, translation: await translateToChinese(phrase) })));
-    let collocationsAdded = 0;
     let collocationsTranslated = 0;
-    const knownPhrases = new Set(existingCollocations.map((item) => clean(item.content, 120).toLowerCase()));
     for (const item of phrasesWithTranslation) {
       if (!item.translation) continue;
       const existing = existingCollocations.find((row) =>
@@ -202,21 +181,15 @@ export async function POST(request: Request) {
       if (existing?.id) {
         await patch("word_collocations", "id=eq." + existing.id, {
           translation: item.translation,
-          source_label: clean(existing.source_label, 120) || TRANSLATION_LABEL,
+          source_label: [clean(existing.source_label, 120), TRANSLATION_LABEL + "（机器翻译，待核对）"].filter(Boolean).join("；"),
         });
         collocationsTranslated++;
-      } else if (!knownPhrases.has(item.phrase.toLowerCase())) {
-        await insert("word_collocations", {
-          sense_id: senseIds[0], content: item.phrase, translation: item.translation,
-          rank: 30 + collocationsAdded, source_type: "dictionary",
-          source_label: DATAMUSE_LABEL + "；中文为机器翻译", verified: false,
-        });
-        collocationsAdded++;
+
       }
     }
-    if (collocationsAdded || collocationsTranslated) {
-      updatedFields.push("必记搭配及中文");
-      sources.push(DATAMUSE_LABEL + " / " + TRANSLATION_LABEL);
+    if (collocationsTranslated) {
+      updatedFields.push("现有搭配的中文翻译");
+      sources.push(TRANSLATION_LABEL + "（机器翻译，待核对）");
     }
 
     const verifiedExamples = existingExamples.filter((item) => item.verified === true);
@@ -241,14 +214,14 @@ export async function POST(request: Request) {
         const sourcePage = clean(dictionary.source?.url, 1000);
         await insert("vocabulary_examples", {
           sense_id: senseIds[0], sentence: candidate, translation, source_type: "dictionary",
-          source_label: DICTIONARY_LABEL,
+          source_label: "开放词典例句（Wiktionary，非六级真题）",
           source_url: /^https:\/\/en\.wiktionary\.org\//i.test(sourcePage) ? sourcePage : null,
-          citation_note: "许可：" + license + "；中文为机器翻译，建议核对。",
+          citation_note: "来源：Wiktionary 开放词典（非六级真题）；许可：" + license + "；中文为机器翻译，建议核对。",
           verified: true, rank: 6,
         });
         exampleAdded++;
         updatedFields.push("例句及翻译");
-        sources.push(DICTIONARY_LABEL + " / " + TRANSLATION_LABEL);
+        sources.push("Wiktionary 开放词典（非六级真题） / " + TRANSLATION_LABEL + "（机器翻译，待核对）");
       }
     }
 
@@ -272,9 +245,9 @@ export async function POST(request: Request) {
 
     return Response.json({
       ok: true, word, updatedFields: unique(updatedFields), remainingFields, sources: unique(sources),
-      dictionaryAvailable, exampleAdded, exampleTranslationAdded, collocationsAdded, collocationsTranslated,
+      dictionaryAvailable, exampleAdded, exampleTranslationAdded, collocationsTranslated,
       note: updatedFields.length
-        ? "已更新缺失字段并写入云端；机器翻译内容已标注来源，请结合上下文核对。"
+        ? "已更新缺失字段并写入云端。Wiktionary 是开放社区词典，新增例句不是六级真题；机器翻译和搭配翻译均需核对。"
         : "本次没有取得可安全写入的新内容；已有真题例句和用户数据均已保留。",
     });
   } catch (error) {
