@@ -23,7 +23,9 @@ export async function GET(request: Request) {
     const appId = process.env.OXFORD_APP_ID;
     const appKey = process.env.OXFORD_APP_KEY;
     if (!appId || !appKey) return Response.json({ error: "Oxford 词典服务尚未配置" }, { status: 424 });
-    const response = await fetch(`https://od-api.oxforddictionaries.com/api/v2/words/en-gb?q=${encodeURIComponent(word)}&fields=examples`, {
+
+    const apiBase = (process.env.OXFORD_API_BASE_URL || "https://od-api.oxforddictionaries.com/api/v2").replace(/\/+$/, "");
+    const response = await fetch(`${apiBase}/words/en-gb?q=${encodeURIComponent(word)}&fields=examples`, {
       headers: { app_id: appId, app_key: appKey, Accept: "application/json" },
       cache: "no-store",
     });
