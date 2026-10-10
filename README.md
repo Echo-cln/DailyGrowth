@@ -35,16 +35,12 @@ example.sourceType 只能是 original 或 dictionary；不要把非真题例句�
 
 ## 词卡资料自动补全
 
-词卡保留“自动补全缺失资料”操作。自动补全目标是从 Oxford、Cambridge 等权威学习词典获取资料，并写入云端词库，供每日学习与复习使用。
+缺项词卡提供“自动补全缺失资料”操作。当前可持久化的备用来源为 Wiktionary，经 FreeDictionaryAPI.com 获取结构化数据；数据采用 CC BY-SA 4.0。页面展示来源链接与许可，新增例句标记为“开放词典例句 · 非真题”。机器翻译会明确标注“待核对”。
 
-Oxford 的 API 调用已支持通过服务端环境变量配置，不把凭证写入代码或 GitHub：
+- 会尝试补充缺失的英/美音标、中文释义、开放词典例句和例句翻译。
+- 仅补缺失字段，不覆盖已有词义、音标或例句。
+- Wiktionary 数据没有足够依据时，字段继续显示“待补充”。
+- 不从语料猜测生成“必记搭配”；无可靠搭配来源时保持待补充。
+- Wiktionary 与机器翻译并非 Oxford/Cambridge 权威学习词典内容，也不会标成六级真题。
 
-- `OXFORD_APP_ID`
-- `OXFORD_APP_KEY`
-- `OXFORD_API_BASE_URL`（Sandbox 测试时填 Oxford 提供的 API Base URL；生产环境按 Oxford 许可提供的地址配置）
-
-`OXFORD_APP_ID` 和 `OXFORD_APP_KEY` 只配置在托管平台的服务端环境变量中，不要放在 `NEXT_PUBLIC_*` 变量、浏览器代码、邮件正文或 GitHub。当前 Oxford 示例接口只进行实时查询，不会写入 Supabase。
-
-**注意：Sandbox 凭证只用于其许可范围内的评估/测试。** 只有在 Oxford 明确许可将返回的词典内容持久化到云端数据库后，才启用词卡自动写入；授权未配置时，自动补全接口会明确提示并且不修改词库。不要以查询跳转或未授权抓取代替自动补全。
-
-已有云端词条和已验证的六级真题记录保持不变；没有可确认来源的字段继续显示“待补充”。
+Oxford Sandbox 的服务端变量为 `OXFORD_APP_ID`、`OXFORD_APP_KEY`、`OXFORD_API_BASE_URL`。凭证只能配置在服务端环境，不可使用 `NEXT_PUBLIC_*` 或提交到 GitHub。Sandbox 额度耗尽时可使用 Wiktionary 路径继续补全。Oxford 标准 API/Sandbox 凭证不自动赋予长期保存权；在获得 Oxford 对云端存储的明确许可前，Oxford 返回内容不会写入 Supabase。
