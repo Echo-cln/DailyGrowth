@@ -73,7 +73,7 @@ async function loadLexicon(force = false) {
     getRows("vocabulary_words?select=id,lemma,phonetic_uk,phonetic_us,pronunciation_audio_url&order=id"),
     getRows("vocabulary_senses?select=id,word_id,part_of_speech,core_meaning,difficulty,note&order=word_id,sense_no"),
     getRows("word_collocations?select=id,sense_id,content,translation,rank,source_type,source_label,verified&order=rank"),
-    getRows("vocabulary_examples?select=id,sense_id,sentence,translation,source_type,source_label,source_url,verified,rank&order=rank"),
+    getRows("vocabulary_examples?select=id,sense_id,sentence,translation,source_type,source_label,source_url,citation_note,verified,rank&order=rank"),
     getRows("corpus_entries?select=word_id,position,corpus_day,corpus_unit,selection_priority,selection_source,theme,memory_hook,exam_marker&order=selection_priority,position"),
     getRows("word_comparisons?select=word_id,similar_words,distinction,contrast_example").catch(() => []),
   ]);
@@ -331,6 +331,7 @@ function shapeWord(word: Row, lexicon: Lexicon, progress?: Row, item?: Row) {
     example_type: !storedSentence ? "例句待补" : example.source_type === "exam" ? "真题原句" : example.source_type === "dictionary" ? (String(example.source_label || "").includes("Wiktionary") ? "开放词典例句 · 非真题" : "词典例句 · 非真题") : "学习例句",
     source: !storedSentence ? "例句待补充" : example.source_label || "溯·辞学习例句",
     example_source_url: String(example.source_url || ""),
+    example_translation_note: String(example.citation_note || ""),
     example_verified: Boolean(example.verified),
     comparison: comparison.distinction ? { similarWords: comparison.similar_words || [], distinction: comparison.distinction, contrastExample: comparison.contrast_example || "" } : null,
     example_is_fallback: !storedSentence,
