@@ -13,7 +13,7 @@ type HistoryDay = { date: string; label: string; words: string[]; reviews?: stri
 const history = historyData as HistoryDay[];
 const unauthorized = () => Response.json({ error: "请先登录", code: "UNAUTHORIZED" }, { status: 401 });
 // Lexicon is cached briefly to avoid repeated full-corpus reads.
-const LEXICON_CACHE_TTL_MS = 0;
+const LEXICON_CACHE_TTL_MS = 60 * 1000;
 type Lexicon = {
   words: Row[];
   sensesByWord: Map<number, Row[]>;
@@ -67,8 +67,8 @@ async function patchRows(table: string, filter: string, body: Row) {
   return dbRequest<Row[]>(`${table}?${filter}`, { method: "PATCH", body, prefer: "return=representation" });
 }
 
-async function loadLexicon() {
-  if (lexiconCache && lexiconCache.expiresAt > Date.now()) return lexiconCache.value;
+async function loadLexicon(force = false) {
+  if (!force && lexiconCache && lexiconCache.expiresAt > Date.now()) return lexiconCache.value;
   const [wordRows, senseRows, collocationRows, exampleRows, entries, comparisonRows] = await Promise.all([
     getRows("vocabulary_words?select=id,lemma,phonetic_uk,phonetic_us,pronunciation_audio_url&order=id"),
     getRows("vocabulary_senses?select=id,word_id,part_of_speech,core_meaning,difficulty,note&order=word_id,sense_no"),
@@ -347,7 +347,8 @@ function shapeWord(word: Row, lexicon: Lexicon, progress?: Row, item?: Row) {
 
 async function context(request: Request) {
   const user = await authenticate(request);
-  const lexicon = await loadLexicon();
+  const forceLexiconRefresh = new URL(request.url).searchParams.get("refreshLexicon") === "1";
+  const lexicon = await loadLexicon(forceLexiconRefresh);
   const profile = await ensureUser(user, lexicon.wordByLemma);
   const [settingsRows, progressRows] = await Promise.all([
     getRows(`user_settings?select=*&user_id=eq.${user.id}&limit=1`),
