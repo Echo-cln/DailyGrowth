@@ -69,6 +69,7 @@ type Word = {
   example_is_fallback?: boolean;
   source: string;
   example_source_url?: string;
+  example_translation_note?: string;
   example_verified?: boolean;
   status: string;
   proficiency: Proficiency | null;
@@ -1225,6 +1226,9 @@ export default function Home() {
                 >
                   {cleanDisplayText(word.example_translation, 300) || "该例句翻译待补充"}
                 </p>
+                {word.example_translation_note?.includes("机器翻译") && (
+                  <span className="text-[10px] text-[#8A94A4]">机器翻译，待核对</span>
+                )}
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <Badge variant="outline" className="text-[11px]">
                     {word.example_type}
@@ -1240,7 +1244,7 @@ export default function Home() {
                     <span className="text-[11px] text-[#697386]">
                       来源：{word.example_source_url ? <a href={word.example_source_url} target="_blank" rel="noreferrer" className="underline underline-offset-2">{word.source}</a> : word.source}
                       {!word.example_verified && word.example_type.includes("开放词典") ? " · 待核验" : ""}
-                      {word.example_type.includes("开放词典") ? " · CC BY-SA 4.0" : ""}
+                      {word.example_type.includes("开放词典") ? <> · <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noreferrer" className="underline underline-offset-2">CC BY-SA 4.0</a></> : ""}
                     </span>
                   )}
 
