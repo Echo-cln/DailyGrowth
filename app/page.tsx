@@ -397,7 +397,7 @@ export default function Home() {
     [accessToken],
   );
 
-  const load = useCallback(async (full = false) => {
+  const load = useCallback(async (full = false, refreshLexicon = false) => {
     if (!accessToken) {
       setLoading(false);
       return;
@@ -411,6 +411,7 @@ export default function Home() {
       const params = new URLSearchParams();
       if (selectedDate) params.set("date", selectedDate);
       if (full) params.set("full", "1");
+      if (refreshLexicon) params.set("refreshLexicon", "1");
       const endpoint = `/api/state${params.size ? `?${params}` : ""}`;
       const response = await authorizedFetch(endpoint, { cache: "no-store" });
       const payload = (await response.json()) as State & { error?: string };
@@ -463,7 +464,7 @@ export default function Home() {
       });
       const payload = (await response.json()) as { error?: string; note?: string; updated?: string[] };
       if (!response.ok) throw new Error(payload.error || "自动补全暂不可用");
-      await load(Boolean(data?.wordsLoaded));
+      await load(Boolean(data?.wordsLoaded), true);
       toast.success(payload.updated?.length ? `已补充：${payload.updated.join("、")}；来源已在词卡中标明` : payload.note || "本次未找到可补充资料");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "自动补全暂不可用");
