@@ -47,8 +47,8 @@ function flattenSenses(senses: Sense[] = []): Sense[] {
   return senses.flatMap((sense) => [sense, ...flattenSenses(Array.isArray(sense.subsenses) ? sense.subsenses as Sense[] : [])]);
 }
 function hasWord(sentence: string, word: string) {
-  const tokens = sentence.toLowerCase().match(/[a-z]+(?:['-][a-z]+)*/g) || [];
-  return tokens.includes(word.toLowerCase());
+  const tokens: string[] = sentence.toLowerCase().match(/[a-z]+(?:['-][a-z]+)*/g) || [];
+  return tokens.some((token) => token === word.toLowerCase());
 }
 function collectExamples(entries: Entry[], word: string) {
   return [...new Set(entries.flatMap((entry) => flattenSenses(entry.senses))
