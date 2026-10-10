@@ -115,10 +115,58 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body = await request.json().catch(() => ({})) as { word?: unknown };
+    const body = await request.json().catch(() => ({})) as { word?: unknown; collocationsOnly?: boolean };
     const word = clean(body.word, 81).toLowerCase();
     if (!/^[a-z][a-z'-]{0,80}$/.test(word))
       return Response.json({ error: "单词格式不正确" }, { status: 400 });
+
+    if (body.collocationsOnly) {
+      const wordRow = (await dbRequest<Row[]>(
+        `vocabulary_words?select=id,lemma&normalized_lemma=eq.${encodeURIComponent(word)}&limit=1`,
+      ))[0];
+      if (!wordRow?.id) return Response.json({ error: "该词不在 CET-6 词库中" }, { status: 404 });
+      const senses = await dbRequest<Row[]>(
+        `vocabulary_senses?select=id,part_of_speech,core_meaning&word_id=eq.${wordRow.id}&order=sense_no`,
+      );
+      if (!senses.length) return Response.json({ error: "该词缺少释义记录" }, { status: 404 });
+      const existing = await dbRequest<Row[]>(
+        `word_collocations?select=id,content,translation,source_label,verified&sense_id=in.(${senses.map((sense) => sense.id).join(",")})&order=rank`,
+      );
+      const updated: string[] = [];
+      for (const item of existing.filter((row) => !clean(row.translation, 200)).slice(0, 3)) {
+        const translation = await translateToChinese(clean(item.content, 120));
+        if (!translation) continue;
+        const source = clean(item.source_label, 160);
+        await dbRequest(`word_collocations?id=eq.${item.id}`, {
+          method: "PATCH",
+          body: { translation, source_label: source.includes("机器翻译待核对") ? source : [source, "机器翻译待核对"].filter(Boolean).join("；") },
+          prefer: "return=minimal",
+        });
+        updated.push("搭配中文释义");
+      }
+      if (!existing.length) {
+        const candidates = await fetchCollocationCandidates(word);
+        const translated = await Promise.all(candidates.map(async (phrase) => ({
+          phrase, translation: await translateToChinese(phrase),
+        })));
+        const rows = translated.filter((item) => item.translation).map((item, index) => ({
+          sense_id: senses[0].id, content: item.phrase, translation: item.translation,
+          rank: 20 + index, source_type: "dictionary",
+          source_label: "Datamuse / Google Books Ngrams 语料搭配候选 · 待核验；中文为机器翻译",
+          verified: false,
+        }));
+        if (rows.length) {
+          await dbRequest("word_collocations", { method: "POST", body: rows, prefer: "return=minimal" });
+          updated.push("语料搭配候选");
+        }
+      }
+      return Response.json({
+        ok: true,
+        updated,
+        source: "Datamuse / Google Books Ngrams",
+        note: updated.length ? "已补入语料搭配候选并标注待核验；机器翻译也需核对。" : "暂未找到可补充的搭配或中文释义。",
+      });
+    }
 
     // Oxford's standard API/Sandbox credentials do not by themselves allow us
     // to persist dictionary text. Persist only Wiktionary data, with attribution.
