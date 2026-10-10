@@ -34,7 +34,8 @@ function flattenSenses(senses: Sense[] = []): Sense[] {
   return senses.flatMap((sense) => [sense, ...flattenSenses(Array.isArray(sense.subsenses) ? sense.subsenses as Sense[] : [])]);
 }
 function hasWord(sentence: string, word: string) {
-  return new RegExp(`\\\\b${word.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")}\\\\b`, "i").test(sentence);
+  const tokens = sentence.toLowerCase().match(/[a-z]+(?:['-][a-z]+)*/g) || [];
+  return tokens.includes(word.toLowerCase());
 }
 function collectExamples(entries: Entry[], word: string) {
   return [...new Set(entries.flatMap((entry) => flattenSenses(entry.senses))
