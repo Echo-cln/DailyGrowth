@@ -68,6 +68,8 @@ type Word = {
   example_type: string;
   example_is_fallback?: boolean;
   source: string;
+  example_source_url?: string;
+  example_verified?: boolean;
   status: string;
   proficiency: Proficiency | null;
   first_learned_at: string | null;
@@ -459,10 +461,10 @@ export default function Home() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ word: word.word }),
       });
-      const payload = (await response.json()) as { error?: string };
+      const payload = (await response.json()) as { error?: string; note?: string; updated?: string[] };
       if (!response.ok) throw new Error(payload.error || "自动补全暂不可用");
       await load(Boolean(data?.wordsLoaded));
-      toast.success("词条资料已自动补齐");
+      toast.success(payload.updated?.length ? `已补充：${payload.updated.join("、")}；来源已在词卡中标明` : payload.note || "本次未找到可补充资料");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "自动补全暂不可用");
     } finally {
@@ -1214,7 +1216,7 @@ export default function Home() {
                       className="inline-flex items-center gap-1 rounded-md border border-dashed border-[#ABD7FB] px-2.5 py-1.5 text-xs text-[#28628F] hover:bg-[#EFF8FF] disabled:cursor-wait disabled:opacity-60">
                       {enrichingWordId === word.id ? <><Loader2 className="size-3 animate-spin" />正在补齐</> : "自动补全缺失资料"}
                     </button>
-                    <span className="block text-[10px] text-[#8A94A4]">仅在配置允许将词典资料保存到云端的授权后启用</span>
+                    <span className="block max-w-sm text-[10px] leading-4 text-[#8A94A4]">从 Wiktionary 开放词典补充（CC BY-SA 4.0）；不是六级真题。机器翻译待核对；不会猜测生成必记搭配。</span>
                   </div>
                 )}
                 <p
@@ -1235,7 +1237,9 @@ export default function Home() {
                   </button>
                   {word.source && (
                     <span className="text-[11px] text-[#697386]">
-                      {word.source}
+                      来源：{word.example_source_url ? <a href={word.example_source_url} target="_blank" rel="noreferrer" className="underline underline-offset-2">{word.source}</a> : word.source}
+                      {!word.example_verified && word.example_type.includes("开放词典") ? " · 待核验" : ""}
+                      {word.example_type.includes("开放词典") ? " · CC BY-SA 4.0" : ""}
                     </span>
                   )}
 
