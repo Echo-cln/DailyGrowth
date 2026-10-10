@@ -1,4 +1,4 @@
-import { authenticate, dbRequest } from "@/lib/supabase-rest";
+import { authenticate } from "@/lib/supabase-rest";
 
 type Row = Record<string, unknown>;
 
@@ -23,7 +23,9 @@ export async function GET(request: Request) {
     const appId = process.env.OXFORD_APP_ID;
     const appKey = process.env.OXFORD_APP_KEY;
     if (!appId || !appKey) return Response.json({ error: "Oxford 词典服务尚未配置" }, { status: 424 });
-    const response = await fetch(`https://od-api.oxforddictionaries.com/api/v2/words/en-gb?q=${encodeURIComponent(word)}&fields=examples`, {
+
+    const apiBase = (process.env.OXFORD_API_BASE_URL || "https://od-api.oxforddictionaries.com/api/v2").replace(/\/+$/, "");
+    const response = await fetch(`${apiBase}/words/en-gb?q=${encodeURIComponent(word)}&fields=examples`, {
       headers: { app_id: appId, app_key: appKey, Accept: "application/json" },
       cache: "no-store",
     });
@@ -33,15 +35,7 @@ export async function GET(request: Request) {
     collectExamples(payload, candidates);
     const sentence = candidates.find((item) => item.length >= 12 && item.length <= 260);
     if (!sentence) return Response.json({ error: "Oxford 暂无可展示例句" }, { status: 404 });
-    const words = await dbRequest<Row[]>(`vocabulary_words?select=id&normalized_lemma=eq.${encodeURIComponent(word)}&limit=1`);
-    if (words[0]?.id) {
-      const senses = await dbRequest<Row[]>(`vocabulary_senses?select=id&word_id=eq.${words[0].id}&order=sense_no&limit=1`);
-      if (senses[0]?.id) {
-        const exists = await dbRequest<Row[]>(`vocabulary_examples?select=id&sense_id=eq.${senses[0].id}&source_label=eq.${encodeURIComponent("Oxford Dictionaries API")}&limit=1`);
-        if (!exists.length) await dbRequest("vocabulary_examples", { method: "POST", body: { sense_id: senses[0].id, sentence, translation: "", source_type: "dictionary", source_label: "Oxford Dictionaries API", verified: true, rank: 2 }, prefer: "return=minimal" });
-      }
-    }
-    return Response.json({ sentence, source: "Oxford Dictionaries API" });
+    return Response.json({ sentence, source: "Oxford Dictionaries API · 本次实时查询，不写入云端" });
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : "获取词典例句失败" }, { status: 500 });
   }

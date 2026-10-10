@@ -61,12 +61,16 @@ type Word = {
   phonetic_us?: string;
   part_of_speech: string;
   core_meaning: string;
-  collocations: Array<string | { phrase?: string; translation?: string; source?: string }> | string[];
+  meaning_source?: string;
+  collocations: Array<string | { phrase?: string; translation?: string; source?: string; verified?: boolean }> | string[];
   example: string;
   example_translation: string;
   example_type: string;
   example_is_fallback?: boolean;
   source: string;
+  example_source_url?: string;
+  example_translation_note?: string;
+  example_verified?: boolean;
   status: string;
   proficiency: Proficiency | null;
   first_learned_at: string | null;
@@ -173,7 +177,8 @@ function formatCollocations(collocations: unknown) {
     return {
       phrase: cleanDisplayText(source.phrase, 100),
       translation: cleanDisplayText(source.translation, 100),
-      source: cleanDisplayText(source.source, 100),
+      source: cleanDisplayText(source.source, 160),
+      verified: typeof item === "object" && item ? item.verified : undefined,
     };
   }).filter((x) => x.phrase);
 }
@@ -294,6 +299,7 @@ const proficiencyStyles: Record<Proficiency, string> = {
 export default function Home() {
   const [data, setData] = useState<State | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [enrichingWordId, setEnrichingWordId] = useState<number | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [view, setView] = useState<View>("growth");
   const [loading, setLoading] = useState(true);
@@ -392,7 +398,7 @@ export default function Home() {
     [accessToken],
   );
 
-  const load = useCallback(async (full = false) => {
+  const load = useCallback(async (full = false, refreshLexicon = false) => {
     if (!accessToken) {
       setLoading(false);
       return;
@@ -406,6 +412,7 @@ export default function Home() {
       const params = new URLSearchParams();
       if (selectedDate) params.set("date", selectedDate);
       if (full) params.set("full", "1");
+      if (refreshLexicon) params.set("refreshLexicon", "1");
       const endpoint = `/api/state${params.size ? `?${params}` : ""}`;
       const response = await authorizedFetch(endpoint, { cache: "no-store" });
       const payload = (await response.json()) as State & { error?: string };
@@ -447,19 +454,24 @@ export default function Home() {
     await load(Boolean(data?.wordsLoaded));
     return payload;
   };
-  const enrichFromFreeSources = async (word: Word) => {
-    const response = await authorizedFetch("/api/free-lexicon", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ word: word.word }),
-    });
-    const payload = (await response.json()) as { error?: string; note?: string };
-    if (!response.ok) {
-      toast.error(payload.error || "学习内容补全失败");
-      return;
+  const enrichWordFromLicensedSources = async (word: Word) => {
+    if (enrichingWordId === word.id) return;
+    setEnrichingWordId(word.id);
+    try {
+      const response = await authorizedFetch("/api/free-lexicon", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ word: word.word }),
+      });
+      const payload = (await response.json()) as { error?: string; note?: string; updated?: string[] };
+      if (!response.ok) throw new Error(payload.error || "自动补全暂不可用");
+      await load(Boolean(data?.wordsLoaded), true);
+      toast.success(payload.updated?.length ? `已补充：${payload.updated.join("、")}；来源已在词卡中标明` : payload.note || "本次未找到可补充资料");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "自动补全暂不可用");
+    } finally {
+      setEnrichingWordId(null);
     }
-    toast.success(payload.note || "已补全学习内容");
-    await load(Boolean(data?.wordsLoaded));
   };
   const rateWord = async (word: Word, proficiency: Proficiency) => {
     if (!data || !accessToken) return;
@@ -1172,6 +1184,7 @@ export default function Home() {
                     <div key={m} className="leading-8 [&+div]:mt-2">{m}</div>
                   ))}
                 </span>
+                {word.meaning_source && <p className="mt-1 text-[10px] leading-4 text-[#8A94A4]">来源说明：{word.meaning_source}</p>}
               </TableCell>
               <TableCell className="max-w-60 whitespace-normal align-top">
                 <div className="space-y-2.5">
@@ -1183,12 +1196,11 @@ export default function Home() {
                       {x.translation && (
                         <span className="block text-sm leading-5 text-[#697386]">{x.translation}</span>
                       )}
+                      {x.source && <span className="block text-[10px] leading-4 text-[#8A94A4]">来源：{x.source}{x.verified === false ? " · 待核验" : ""}</span>}
                     </div>
                   ))}
                   {!formatCollocations(word.collocations).length && (
-                    <button type="button" onClick={() => void enrichFromFreeSources(word)} className="rounded-lg border border-dashed border-[#ABD7FB] px-3 py-2 text-xs text-[#28628F] hover:bg-[#EFF8FF]">
-                      补全公开语料搭配
-                    </button>
+                    <span className="text-xs text-[#8A94A4]">搭配待补充</span>
                   )}
                 </div>
               </TableCell>
@@ -1196,13 +1208,27 @@ export default function Home() {
                 <p className="leading-6">
                   {cleanExample(word.example)
                     ? renderMarkedText(cleanExample(word.example), word.word, appData.highlights.filter((h) => h.word_id === word.id))
-                    : <span className="inline-flex flex-wrap items-center gap-2 text-[#8A94A4]">例句数据待整理 <button type="button" onClick={() => void enrichFromFreeSources(word)} className="rounded-md border border-dashed border-[#ABD7FB] px-2 py-1 text-xs text-[#28628F] hover:bg-[#EFF8FF]">补充学习例句</button></span>}
+                    : <span className="text-[#8A94A4]">例句待补充</span>}
                 </p>
+                {(!word.phonetic_uk || !word.phonetic_us || !word.core_meaning || /释义待补充|meaning pending/i.test(word.core_meaning) ||
+                  !formatCollocations(word.collocations).length || formatCollocations(word.collocations).some((item) => !item.translation) ||
+                  !cleanExample(word.example) || !word.example_translation) && (
+                  <div className="mt-2 space-y-1">
+                    <button type="button" onClick={() => void enrichWordFromLicensedSources(word)} disabled={enrichingWordId === word.id}
+                      className="inline-flex items-center gap-1 rounded-md border border-dashed border-[#ABD7FB] px-2.5 py-1.5 text-xs text-[#28628F] hover:bg-[#EFF8FF] disabled:cursor-wait disabled:opacity-60">
+                      {enrichingWordId === word.id ? <><Loader2 className="size-3 animate-spin" />正在补齐</> : "自动补全缺失资料"}
+                    </button>
+                    <span className="block max-w-sm text-[10px] leading-4 text-[#8A94A4]">从 Wiktionary 开放词典补充（CC BY-SA 4.0）；不是六级真题。机器翻译待核对；不会猜测生成必记搭配。</span>
+                  </div>
+                )}
                 <p
                   className={`mt-2 text-sm leading-6 text-[#697386] ${hiddenParts.example ? "select-none rounded bg-[#E9E4E1] text-transparent" : ""}`}
                 >
                   {cleanDisplayText(word.example_translation, 300) || "该例句翻译待补充"}
                 </p>
+                {word.example_translation_note?.includes("机器翻译") && (
+                  <span className="text-[10px] text-[#8A94A4]">机器翻译，待核对</span>
+                )}
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <Badge variant="outline" className="text-[11px]">
                     {word.example_type}
@@ -1216,7 +1242,9 @@ export default function Home() {
                   </button>
                   {word.source && (
                     <span className="text-[11px] text-[#697386]">
-                      {word.source}
+                      来源：{word.example_source_url ? <a href={word.example_source_url} target="_blank" rel="noreferrer" className="underline underline-offset-2">{word.source}</a> : word.source}
+                      {!word.example_verified && word.example_type.includes("开放词典") ? " · 待核验" : ""}
+                      {word.example_type.includes("开放词典") ? <> · <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noreferrer" className="underline underline-offset-2">CC BY-SA 4.0</a></> : ""}
                     </span>
                   )}
 

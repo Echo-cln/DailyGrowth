@@ -67,13 +67,13 @@ async function patchRows(table: string, filter: string, body: Row) {
   return dbRequest<Row[]>(`${table}?${filter}`, { method: "PATCH", body, prefer: "return=representation" });
 }
 
-async function loadLexicon() {
-  if (lexiconCache && lexiconCache.expiresAt > Date.now()) return lexiconCache.value;
+async function loadLexicon(force = false) {
+  if (!force && lexiconCache && lexiconCache.expiresAt > Date.now()) return lexiconCache.value;
   const [wordRows, senseRows, collocationRows, exampleRows, entries, comparisonRows] = await Promise.all([
     getRows("vocabulary_words?select=id,lemma,phonetic_uk,phonetic_us,pronunciation_audio_url&order=id"),
     getRows("vocabulary_senses?select=id,word_id,part_of_speech,core_meaning,difficulty,note&order=word_id,sense_no"),
     getRows("word_collocations?select=id,sense_id,content,translation,rank,source_type,source_label,verified&order=rank"),
-    getRows("vocabulary_examples?select=id,sense_id,sentence,translation,source_type,source_label,verified,rank&order=rank"),
+    getRows("vocabulary_examples?select=id,sense_id,sentence,translation,source_type,source_label,source_url,citation_note,verified,rank&order=rank"),
     getRows("corpus_entries?select=word_id,position,corpus_day,corpus_unit,selection_priority,selection_source,theme,memory_hook,exam_marker&order=selection_priority,position"),
     getRows("word_comparisons?select=word_id,similar_words,distinction,contrast_example").catch(() => []),
   ]);
@@ -84,11 +84,11 @@ async function loadLexicon() {
   const senses = senseRows.filter((row) => corpusWordIds.has(Number(row.word_id)));
   const senseIds = new Set(senses.map((row) => Number(row.id)));
   const collocations = collocationRows.filter((row) => senseIds.has(Number(row.sense_id)));
-  // Only verified sentences are eligible for study. The source label is preserved
-  // for transparency; valid internally curated learning sentences must not disappear
-  // merely because they are not tagged as an external dictionary.
+  // Human-verified sentences and openly licensed Wiktionary examples are eligible
+  // for display; the UI labels open-dictionary material as not yet reviewed.
   const examples = exampleRows.filter((row) =>
-    senseIds.has(Number(row.sense_id)) && Boolean(row.verified),
+    senseIds.has(Number(row.sense_id)) &&
+    (Boolean(row.verified) || (row.source_type === "dictionary" && /Wiktionary/i.test(String(row.source_label || "")))),
   );
   const sensesByWord = new Map<number, Row[]>();
   const collocationsBySense = new Map<number, Row[]>();
@@ -320,16 +320,19 @@ function shapeWord(word: Row, lexicon: Lexicon, progress?: Row, item?: Row) {
   return {
     id: Number(word.id), word: word.lemma, phonetic: word.phonetic_uk || word.phonetic_us || "",
     phonetic_uk: word.phonetic_uk || "", phonetic_us: word.phonetic_us || "",
-    part_of_speech: String(sense.part_of_speech || ""), core_meaning: sense.core_meaning || "释义待补充",
+    part_of_speech: String(sense.part_of_speech || ""), core_meaning: sense.core_meaning || "释义待补充", meaning_source: String(sense.note || ""),
     meanings: senses.map((row) => ({ part_of_speech: row.part_of_speech || "", meaning: row.core_meaning || "" })),
     collocations: senses.flatMap((row) => (lexicon.collocationsBySense.get(Number(row.id)) || [])
       .slice()
       .sort((a, b) => Number(Boolean(b.verified)) - Number(Boolean(a.verified)) || Number(a.rank || 0) - Number(b.rank || 0))
-      .map((item) => ({ phrase: item.content || "", translation: item.translation || "", source: item.source_label || "" }))).slice(0, 3),
+      .map((item) => ({ phrase: item.content || "", translation: item.translation || "", source: item.source_label || "", verified: item.verified }))).slice(0, 3),
     example: storedSentence,
     example_translation: storedSentence ? String(example.translation || "").trim() : "",
-    example_type: !storedSentence ? "例句待补" : example.source_type === "exam" ? "真题原句" : "学习例句",
+    example_type: !storedSentence ? "例句待补" : example.source_type === "exam" ? "真题原句" : example.source_type === "dictionary" ? (String(example.source_label || "").includes("Wiktionary") ? "开放词典例句 · 非真题" : "词典例句 · 非真题") : "学习例句",
     source: !storedSentence ? "例句待补充" : example.source_label || "溯·辞学习例句",
+    example_source_url: String(example.source_url || ""),
+    example_translation_note: String(example.citation_note || ""),
+    example_verified: Boolean(example.verified),
     comparison: comparison.distinction ? { similarWords: comparison.similar_words || [], distinction: comparison.distinction, contrastExample: comparison.contrast_example || "" } : null,
     example_is_fallback: !storedSentence,
     status: progress?.status || "unlearned", proficiency: progress?.proficiency || null,
@@ -345,7 +348,8 @@ function shapeWord(word: Row, lexicon: Lexicon, progress?: Row, item?: Row) {
 
 async function context(request: Request) {
   const user = await authenticate(request);
-  const lexicon = await loadLexicon();
+  const forceLexiconRefresh = new URL(request.url).searchParams.get("refreshLexicon") === "1";
+  const lexicon = await loadLexicon(forceLexiconRefresh);
   const profile = await ensureUser(user, lexicon.wordByLemma);
   const [settingsRows, progressRows] = await Promise.all([
     getRows(`user_settings?select=*&user_id=eq.${user.id}&limit=1`),
