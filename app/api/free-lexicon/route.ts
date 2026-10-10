@@ -72,6 +72,20 @@ async function translateToChinese(value: string) {
     .replace(/&lt;/g, "<").replace(/&gt;/g, ">");
   return /[\u3400-\u9FFF]/u.test(translated) ? translated : "";
 }
+async function fetchCollocationCandidates(word: string) {
+  const api = (relation: "rel_bga" | "rel_bgb") =>
+    fetch(`https://api.datamuse.com/words?${relation}=${encodeURIComponent(word)}&max=8`, { cache: "no-store" })
+      .then((response) => response.ok ? response.json() as Promise<Array<{ word?: unknown }>> : [])
+      .catch(() => []);
+  const [following, preceding] = await Promise.all([api("rel_bga"), api("rel_bgb")]);
+  const phrases = [
+    ...following.map((item) => `${word} ${clean(item.word, 70)}`),
+    ...preceding.map((item) => `${clean(item.word, 70)} ${word}`),
+  ].map((value) => value.replace(/\s+/g, " ").trim())
+    .filter((phrase) => phrase.toLowerCase() !== word && /^[a-z][a-z' -]{1,119}$/i.test(phrase))
+    .filter((phrase) => phrase.split(" ").length <= 5);
+  return [...new Set(phrases)].slice(0, 3);
+}
 function safeIpa(value: unknown) {
   const text = clean(value, 100);
   return text.length <= 80 && /[\/\[\]]/.test(text) ? text : "";
@@ -218,6 +232,49 @@ export async function POST(request: Request) {
       }
     }
 
+    const collocations = await dbRequest<Row[]>(
+      `word_collocations?select=id,content,translation,rank,source_label,verified&sense_id=in.(${senses.map((sense) => sense.id).join(",")})&order=rank`,
+    );
+    let collocationsAdded = false;
+    const missingTranslations = collocations.filter((item) => !clean(item.translation, 200)).slice(0, 3);
+    if (missingTranslations.length) {
+      for (const item of missingTranslations) {
+        const translation = await translateToChinese(clean(item.content, 120));
+        if (!translation) continue;
+        const priorSource = clean(item.source_label, 160);
+        await dbRequest(`word_collocations?id=eq.${item.id}`, {
+          method: "PATCH",
+          body: {
+            translation,
+            source_label: priorSource.includes("机器翻译待核对") ? priorSource : [priorSource, "机器翻译待核对"].filter(Boolean).join("；"),
+          },
+          prefer: "return=minimal",
+        });
+        updates.push("搭配中文释义");
+        collocationsAdded = true;
+      }
+    } else if (!collocations.length) {
+      const candidates = await fetchCollocationCandidates(word);
+      const translated = await Promise.all(candidates.map(async (phrase) => ({
+        phrase,
+        translation: await translateToChinese(phrase),
+      })));
+      const rows = translated.filter((item) => item.translation).map((item, index) => ({
+        sense_id: senses[0].id,
+        content: item.phrase,
+        translation: item.translation,
+        rank: 20 + index,
+        source_type: "dictionary",
+        source_label: "Datamuse / Google Books Ngrams 语料搭配候选 · 待核验；中文为机器翻译",
+        verified: false,
+      }));
+      if (rows.length) {
+        await dbRequest("word_collocations", { method: "POST", body: rows, prefer: "return=minimal" });
+        updates.push("语料搭配候选");
+        collocationsAdded = true;
+      }
+    }
+
     if (sourceNotes.length) {
       const priorNote = clean(senses[0].note, 1000);
       const attribution = [...new Set(sourceNotes)].join("；");
@@ -231,27 +288,26 @@ export async function POST(request: Request) {
       }
     }
 
-    // This endpoint deliberately does not fabricate collocations. The source API
-    // provides definitions/examples, not a vetted collocation list.
     if (!updates.length) {
       return Response.json({
         ok: true,
         updated: [],
-        remaining: ["音标", "中文释义", "搭配", "例句或译文"],
+        remaining: ["音标、释义、例句或搭配译文仍缺失时可稍后重试"],
         source: API_LABEL,
         license: "CC BY-SA 4.0",
-        note: "本次没有找到可安全补入的缺失字段；搭配不会由语料猜测生成。",
+        note: "本次没有找到可补充的缺失字段；语料搭配候选会明确标注为待核验。",
       });
     }
     return Response.json({
       ok: true,
       updated: updates,
-      remaining: ["未提供或无法可靠翻译的字段仍待补充", "必记搭配不会由语料猜测生成"],
+      remaining: ["未提供或无法可靠翻译的字段仍待补充"],
       source: API_LABEL,
       sourceUrl: clean(dictionary.source?.url, 500) || `https://en.wiktionary.org/wiki/${encodeURIComponent(word)}`,
       license: "CC BY-SA 4.0",
       licenseUrl: LICENSE_URL,
       exampleAdded: addedExample,
+      collocationsAdded,
       note: "资料来自 Wiktionary，经 FreeDictionaryAPI.com 提供；机器翻译内容待核对。已保留原有词条内容。未找到的字段继续显示待补充。",
     });
   } catch (error) {
