@@ -1,6 +1,19 @@
 import { authenticate, dbRequest } from "@/lib/supabase-rest";
 
-type Row = Record<string, unknown>;
+type Row = Record<string, unknown> & {
+  id?: number | string;
+  lemma?: string;
+  phonetic_uk?: string | null;
+  phonetic_us?: string | null;
+  part_of_speech?: string | null;
+  core_meaning?: string | null;
+  note?: string | null;
+  source_type?: string | null;
+  source_label?: string | null;
+  source_url?: string | null;
+  sentence?: string | null;
+  translation?: string | null;
+};
 type Pronunciation = { text?: unknown; tags?: unknown };
 type Translation = { language?: { code?: unknown }; word?: unknown };
 type Sense = {
