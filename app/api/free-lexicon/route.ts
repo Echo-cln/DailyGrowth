@@ -122,6 +122,7 @@ export async function POST(request: Request) {
     if (!senses.length) return Response.json({ error: "该词缺少释义记录" }, { status: 404 });
 
     const updates: string[] = [];
+    const sourceNotes: string[] = [];
     const ukIpa = isMissing(wordRow.phonetic_uk) ? chooseIpa(entries, "uk") : "";
     const usIpa = isMissing(wordRow.phonetic_us) ? chooseIpa(entries, "us") : "";
     const ipaFallback = isMissing(wordRow.phonetic_uk) && isMissing(wordRow.phonetic_us)
@@ -135,6 +136,7 @@ export async function POST(request: Request) {
       if (isMissing(wordRow.phonetic_us) && finalUs) patch.phonetic_us = finalUs;
       await dbRequest(`vocabulary_words?id=eq.${wordRow.id}`, { method: "PATCH", body: patch, prefer: "return=minimal" });
       updates.push("音标");
+      sourceNotes.push(`${API_LABEL} 音标；CC BY-SA 4.0。`);
     }
 
     const exampleRows = await dbRequest<Row[]>(
@@ -173,15 +175,32 @@ export async function POST(request: Request) {
     if (selected && isMissing(senses[0].core_meaning)) {
       const definition = clean(selected.sense.definition, 500);
       if (definition) {
-        const meaning = clean(chineseTranslation(selected.sense), 300) || await translateToChinese(definition);
+        const wiktionaryTranslation = clean(chineseTranslation(selected.sense), 300);
+        const meaning = wiktionaryTranslation || await translateToChinese(definition);
         if (meaning) {
           await dbRequest(`vocabulary_senses?id=eq.${senses[0].id}`, {
             method: "PATCH",
-            body: { core_meaning: meaning, note: `${API_LABEL}；英文释义译文为机器翻译，待核对。来源许可：CC BY-SA 4.0。` },
+            body: { core_meaning: meaning },
             prefer: "return=minimal",
           });
+          sourceNotes.push(wiktionaryTranslation
+            ? `${API_LABEL} 中文释义；CC BY-SA 4.0，待核对。`
+            : `${API_LABEL} 英文释义的机器翻译；待核对。CC BY-SA 4.0。`);
           updates.push("中文释义");
         }
+      }
+    }
+
+    if (sourceNotes.length) {
+      const priorNote = clean(senses[0].note, 1000);
+      const attribution = [...new Set(sourceNotes)].join("；");
+      if (!priorNote.includes("Wiktionary")) {
+        const note = [priorNote, attribution].filter(Boolean).join("；");
+        await dbRequest(`vocabulary_senses?id=eq.${senses[0].id}`, {
+          method: "PATCH",
+          body: { note },
+          prefer: "return=minimal",
+        });
       }
     }
 
