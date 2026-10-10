@@ -1,6 +1,6 @@
 import { authenticate, dbRequest } from "@/lib/supabase-rest";
 
-type Row = Record<string, any>;
+type Row = Record<string, unknown>;
 type Pronunciation = { text?: unknown; tags?: unknown };
 type Translation = { language?: { code?: unknown }; word?: unknown };
 type Sense = {
@@ -140,9 +140,23 @@ export async function POST(request: Request) {
     }
 
     const exampleRows = await dbRequest<Row[]>(
-      `vocabulary_examples?select=id&sense_id=in.(${senses.map((sense) => sense.id).join(",")})&limit=1`,
+      `vocabulary_examples?select=id,sense_id,sentence,translation,source_type,source_label,source_url&sense_id=in.(${senses.map((sense) => sense.id).join(",")})&order=rank&limit=1`,
     );
     let addedExample = false;
+    const existingExample = exampleRows[0];
+    if (existingExample && existingExample.source_type === "dictionary" &&
+        /Wiktionary/i.test(String(existingExample.source_label || "")) &&
+        !clean(existingExample.translation) && clean(existingExample.sentence)) {
+      const translation = await translateToChinese(clean(existingExample.sentence));
+      if (translation) {
+        await dbRequest(`vocabulary_examples?id=eq.${existingExample.id}`, {
+          method: "PATCH",
+          body: { translation },
+          prefer: "return=minimal",
+        });
+        updates.push("例句机器翻译");
+      }
+    }
     if (!exampleRows.length) {
       const selected = chooseSense(entries, clean(senses[0].part_of_speech, 40));
       const examples = collectExamples(entries, word);
