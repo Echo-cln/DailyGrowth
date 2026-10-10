@@ -2,7 +2,7 @@
 import { dbRequest } from "@/lib/supabase-rest";
 
 type Row = Record<string, any>;
-type CollocationInput = { phrase?: unknown; translation?: unknown; sourceLabel?: unknown };
+type CollocationInput = { phrase?: unknown; translation?: unknown; sourceLabel?: unknown; verified?: unknown };
 type EnrichmentWord = {
   word?: unknown;
   phoneticUk?: unknown;
@@ -137,28 +137,47 @@ export async function POST(request: Request) {
       }
 
       const senseFilter = "sense_id=in.(" + senseIds.join(",") + ")";
-      const existingCollocations = await rows("word_collocations?select=id,content&" + senseFilter);
-      let collocationStatus = "already_present";
-      if (!existingCollocations.length && Array.isArray(item.collocations) && item.collocations.length) {
+      const existingCollocations = await rows("word_collocations?select=id,content,translation,source_label,verified&" + senseFilter);
+      let collocationStatus = existingCollocations.length ? "already_present" : "not_provided";
+      if (Array.isArray(item.collocations) && item.collocations.length) {
         const candidates = item.collocations.slice(0, 3).flatMap((entry, index) => {
           const phrase = clean(entry.phrase, 120);
           const translation = clean(entry.translation, 160);
           const sourceLabel = clean(entry.sourceLabel, 120);
           if (!phrase || !translation || !hasChinese(translation) || !sourceLabel || !/^[a-z][a-z' -]{0,119}$/i.test(phrase)) return [];
           return [{
-            sense_id: senseIds[0],
-            content: phrase,
+            phrase,
             translation,
+            sourceLabel,
+            verified: entry.verified !== false,
             rank: index + 1,
-            source_type: "dictionary",
-            source_label: sourceLabel,
-            verified: true,
           }];
         });
-        if (candidates.length) {
-          await insert("word_collocations", candidates);
-          collocationsAdded += candidates.length;
+        const toInsert = existingCollocations.length ? [] : candidates.map((entry) => ({
+          sense_id: senseIds[0],
+          content: entry.phrase,
+          translation: entry.translation,
+          rank: entry.rank,
+          source_type: "dictionary",
+          source_label: entry.sourceLabel,
+          verified: entry.verified,
+        }));
+        if (toInsert.length) {
+          await insert("word_collocations", toInsert);
+          collocationsAdded += toInsert.length;
           collocationStatus = "added";
+        } else if (existingCollocations.length) {
+          for (const entry of candidates) {
+            const existing = existingCollocations.find((row) => clean(row.content, 120).toLowerCase() === entry.phrase.toLowerCase());
+            if (!existing || clean(existing.translation, 160)) continue;
+            await dbRequest("word_collocations?id=eq." + existing.id, {
+              method: "PATCH",
+              body: { translation: entry.translation },
+              prefer: "return=minimal",
+            });
+            collocationsAdded++;
+            collocationStatus = "translation_filled";
+          }
         } else {
           collocationStatus = "no_valid_source_data";
         }
@@ -192,7 +211,7 @@ export async function POST(request: Request) {
         exampleStatus = "added";
       }
 
-      const changed = Object.keys(phoneticPatch).length > 0 || collocationStatus === "added" || exampleStatus === "added";
+      const changed = Object.keys(phoneticPatch).length > 0 || ["added", "translation_filled"].includes(collocationStatus) || exampleStatus === "added";
       if (!changed) skipped++;
       results.push({
         word: lemma,
@@ -242,6 +261,7 @@ export async function GET() {
           phrase: "a typical example",
           translation: "一个典型的例子",
           sourceLabel: "Oxford Learner's Dictionaries",
+          verified: true,
         }],
       }],
     },

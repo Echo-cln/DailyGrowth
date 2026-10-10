@@ -454,14 +454,14 @@ export default function Home() {
     await load(Boolean(data?.wordsLoaded));
     return payload;
   };
-  const enrichWordFromLicensedSources = async (word: Word) => {
+  const enrichWordFromLicensedSources = async (word: Word, collocationsOnly = false) => {
     if (enrichingWordId === word.id) return;
     setEnrichingWordId(word.id);
     try {
       const response = await authorizedFetch("/api/free-lexicon", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ word: word.word }),
+        body: JSON.stringify({ word: word.word, collocationsOnly }),
       });
       const payload = (await response.json()) as { error?: string; note?: string; updated?: string[] };
       if (!response.ok) throw new Error(payload.error || "自动补全暂不可用");
@@ -1202,6 +1202,12 @@ export default function Home() {
                   {!formatCollocations(word.collocations).length && (
                     <span className="text-xs text-[#8A94A4]">搭配待补充</span>
                   )}
+                  {(!formatCollocations(word.collocations).length || formatCollocations(word.collocations).some((item) => !item.translation)) && (
+                    <button type="button" onClick={() => void enrichWordFromLicensedSources(word, true)} disabled={enrichingWordId === word.id}
+                      className="mt-2 inline-flex items-center gap-1 rounded-md border border-dashed border-[#ABD7FB] px-2.5 py-1.5 text-xs text-[#28628F] hover:bg-[#EFF8FF] disabled:cursor-wait disabled:opacity-60">
+                      {enrichingWordId === word.id ? <><Loader2 className="size-3 animate-spin" />正在补齐</> : "补充搭配"}
+                    </button>
+                  )}
                 </div>
               </TableCell>
               <TableCell className="whitespace-normal align-top">
@@ -1211,14 +1217,13 @@ export default function Home() {
                     : <span className="text-[#8A94A4]">例句待补充</span>}
                 </p>
                 {(!word.phonetic_uk || !word.phonetic_us || !word.core_meaning || /释义待补充|meaning pending/i.test(word.core_meaning) ||
-                  !formatCollocations(word.collocations).length || formatCollocations(word.collocations).some((item) => !item.translation) ||
                   !cleanExample(word.example) || !word.example_translation) && (
                   <div className="mt-2 space-y-1">
                     <button type="button" onClick={() => void enrichWordFromLicensedSources(word)} disabled={enrichingWordId === word.id}
                       className="inline-flex items-center gap-1 rounded-md border border-dashed border-[#ABD7FB] px-2.5 py-1.5 text-xs text-[#28628F] hover:bg-[#EFF8FF] disabled:cursor-wait disabled:opacity-60">
-                      {enrichingWordId === word.id ? <><Loader2 className="size-3 animate-spin" />正在补齐</> : "自动补全缺失资料"}
+                      {enrichingWordId === word.id ? <><Loader2 className="size-3 animate-spin" />正在补齐</> : "补全例句与释义"}
                     </button>
-                    <span className="block max-w-sm text-[10px] leading-4 text-[#8A94A4]">从 Wiktionary 开放词典补充（CC BY-SA 4.0）；不是六级真题。机器翻译待核对；不会猜测生成必记搭配。</span>
+                    <span className="block max-w-sm text-[10px] leading-4 text-[#8A94A4]">从 Wiktionary 开放词典补充例句、释义和音标；搭配候选来自语料并标注待核验。不是六级真题。机器翻译待核对。</span>
                   </div>
                 )}
                 <p
