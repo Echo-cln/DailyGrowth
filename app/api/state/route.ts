@@ -88,7 +88,7 @@ async function loadLexicon() {
   // for display; the UI labels open-dictionary material as not yet reviewed.
   const examples = exampleRows.filter((row) =>
     senseIds.has(Number(row.sense_id)) &&
-    (Boolean(row.verified) || (row.source_type === "dictionary" && /Wiktionary/i.test(String(row.source_label || ""))),
+    (Boolean(row.verified) || (row.source_type === "dictionary" && /Wiktionary/i.test(String(row.source_label || "")))),
   );
   const sensesByWord = new Map<number, Row[]>();
   const collocationsBySense = new Map<number, Row[]>();
