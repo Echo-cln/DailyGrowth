@@ -7,7 +7,7 @@ import { ArrowLeft, ChevronLeft, ChevronRight, LineChart, MessageCircle, Newspap
 type InsightType = "growth_brief" | "fund_strategy" | "market_intraday";
 type HubItem = { id: string; content_type: InsightType | "workout_plan"; title: string; summary: string; payload: Record<string, unknown>; content_date: string };
 type ActionState = { item_id: string; action_key: string; completed: boolean };
-type DocumentBlock = { kind: "title" | "heading" | "label" | "paragraph" | "bullet" | "numbered" | "quote" | "table"; text?: string; rows?: string[][] };
+type DocumentBlock = { kind: "title" | "heading" | "label" | "paragraph" | "bullet" | "numbered" | "quote" | "table"; level?: 1 | 2; text?: string; rows?: string[][] };
 type DocumentTone = { title: string; tableHead: string; headingBorder: string; labelSurface: string; labelBorder: string; quoteSurface: string; quoteBorder: string; bullet: string };
 
 const TEXT = "#3f5e77";
@@ -35,7 +35,14 @@ function parseDocument(body: string): DocumentBlock[] {
     const line = lines[index].trim(); if (!line) continue; const next = lines[index + 1]?.trim() || "";
     if (line.includes("|") && /^\|?\s*:?-{2,}:?\s*(?:\|\s*:?-{2,}:?\s*)+\|?$/.test(next)) { const rows = [splitTableRow(line)]; index += 2; while (index < lines.length && lines[index].includes("|")) { rows.push(splitTableRow(lines[index])); index += 1; } blocks.push({ kind: "table", rows }); index -= 1; continue; }
     if (!sawTitle && /^(?:#\s*)?\d{4}-\d{2}-\d{2}/.test(line)) { blocks.push({ kind: "title", text: line.replace(/^#\s*/, "") }); sawTitle = true; continue; }
-    if (/^(?:#{1,3}\s+|[一二三四五六七八九十]+[、.]\s*|\d+[、.]\s*)/.test(line)) { blocks.push({ kind: "heading", text: line.replace(/^#{1,3}\s*/, "") }); continue; }
+    const markdownHeading = line.match(/^(#{1,3})\s+(.+)$/);
+    const chineseHeading = line.match(/^([一二三四五六七八九十]+)[、.]\s*(.+)$/);
+    const numberedHeading = line.match(/^(\d+)[、.]\s*(.+)$/);
+    const boldHeading = line.match(/^\*\*(.{2,48})\*\*$/);
+    if (markdownHeading) { blocks.push({ kind: "heading", level: markdownHeading[1].length === 1 ? 1 : 2, text: markdownHeading[2] }); continue; }
+    if (chineseHeading) { blocks.push({ kind: "heading", level: 1, text: line }); continue; }
+    if (numberedHeading) { blocks.push({ kind: "heading", level: 2, text: line }); continue; }
+    if (boldHeading) { blocks.push({ kind: "heading", level: 2, text: boldHeading[1] }); continue; }
     if (/^(?:结论|最终结论|触发条件|执行动作|动作|原因|执行含义|事实|不确定性|结构结论|补充市场体检|今日最终执行表)\s*[：:]/.test(line)) { blocks.push({ kind: "label", text: line }); continue; }
     const bullet = line.match(/^(?:[-•●▪·*])\s+(.+)$/); if (bullet) { blocks.push({ kind: "bullet", text: bullet[1] }); continue; }
     const numbered = line.match(/^\d+[.)]\s+(.+)$/); if (numbered) { blocks.push({ kind: "numbered", text: numbered[1] }); continue; }
@@ -49,7 +56,7 @@ function AskGptBubble({ href, prompt, tone }: { href: string; prompt: string; to
 function renderDocument(body: string, tone: DocumentTone) { return parseDocument(body).map((block, index) => {
   if (block.kind === "table" && block.rows?.length) return <div key={index} className="my-6 overflow-x-auto rounded-2xl border border-[#dbe8ee] bg-white"><table className="w-full min-w-[34rem] text-left text-sm"><thead className={tone.tableHead}><tr>{block.rows[0].map((cell, cellIndex) => <th key={cellIndex} className="px-4 py-3 font-extrabold">{inline(cell)}</th>)}</tr></thead><tbody>{block.rows.slice(1).map((row, rowIndex) => <tr key={rowIndex} className="border-t border-[#e5eef2]">{row.map((cell, cellIndex) => <td key={cellIndex} className="px-4 py-3 align-top leading-6 text-[#526979]">{inline(cell)}</td>)}</tr>)}</tbody></table></div>;
   if (block.kind === "title") return <p key={index} className={`mb-6 rounded-xl px-4 py-3 text-sm font-bold text-[#526979] ${tone.title}`}>{inline(block.text || "")}</p>;
-  if (block.kind === "heading") return <h3 key={index} className={`mt-9 border-l-4 pl-3 text-xl font-black tracking-tight ${tone.headingBorder}`} style={{ color: TEXT }}>{inline(block.text || "")}</h3>;
+  if (block.kind === "heading") return block.level === 2 ? <h4 key={index} className="mt-5 border-l-2 pl-3 text-base font-extrabold leading-7 text-[#526979]" style={{ borderColor: tone.bullet }}>{inline(block.text || "")}</h4> : <h3 key={index} className={`mt-9 rounded-r-xl border-l-4 px-4 py-3 text-xl font-black leading-8 tracking-tight ${tone.headingBorder} ${tone.title}`} style={{ color: TEXT }}>{inline(block.text || "")}</h3>;
   if (block.kind === "label") return <p key={index} className={`rounded-xl border px-4 py-3 text-base leading-7 text-[#526979] ${tone.labelSurface} ${tone.labelBorder}`}>{inline(block.text || "")}</p>;
   if (block.kind === "quote") return <blockquote key={index} className={`border-l-4 px-5 py-4 text-base font-semibold leading-8 text-[#526979] ${tone.quoteSurface} ${tone.quoteBorder}`}>{inline(block.text || "")}</blockquote>;
   if (block.kind === "bullet" || block.kind === "numbered") return <div key={index} className="flex gap-3 text-base leading-8 text-[#526979]"><span className="mt-3 h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: tone.bullet }} /><p>{inline(block.text || "")}</p></div>;
