@@ -454,14 +454,14 @@ export default function Home() {
     await load(Boolean(data?.wordsLoaded));
     return payload;
   };
-  const enrichWordFromLicensedSources = async (word: Word) => {
+  const enrichWordFromLicensedSources = async (word: Word, collocationsOnly = false) => {
     if (enrichingWordId === word.id) return;
     setEnrichingWordId(word.id);
     try {
       const response = await authorizedFetch("/api/free-lexicon", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ word: word.word }),
+        body: JSON.stringify({ word: word.word, collocationsOnly }),
       });
       const payload = (await response.json()) as { error?: string; note?: string; updated?: string[] };
       if (!response.ok) throw new Error(payload.error || "自动补全暂不可用");
@@ -1203,7 +1203,7 @@ export default function Home() {
                     <span className="text-xs text-[#8A94A4]">搭配待补充</span>
                   )}
                   {(!formatCollocations(word.collocations).length || formatCollocations(word.collocations).some((item) => !item.translation)) && (
-                    <button type="button" onClick={() => void enrichWordFromLicensedSources(word)} disabled={enrichingWordId === word.id}
+                    <button type="button" onClick={() => void enrichWordFromLicensedSources(word, true)} disabled={enrichingWordId === word.id}
                       className="mt-2 inline-flex items-center gap-1 rounded-md border border-dashed border-[#ABD7FB] px-2.5 py-1.5 text-xs text-[#28628F] hover:bg-[#EFF8FF] disabled:cursor-wait disabled:opacity-60">
                       {enrichingWordId === word.id ? <><Loader2 className="size-3 animate-spin" />正在补齐</> : "补充搭配"}
                     </button>
